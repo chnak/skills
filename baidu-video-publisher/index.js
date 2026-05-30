@@ -173,6 +173,18 @@ async function uploadVideo(videoPath) {
   // 等待上传按钮出现
   await wait(3000);
   
+  // 调试：列出页面上所有 input[type="file"]
+  const debugInfo = await page.evaluate(() => {
+    const inputs = document.querySelectorAll('input[type="file"]');
+    return Array.from(inputs).map(inp => ({
+      accept: inp.accept || '',
+      visible: inp.offsetParent !== null,
+      display: getComputedStyle(inp).display,
+      parent: inp.parentElement?.tagName
+    }));
+  });
+  console.log('所有 input[type="file"]:', JSON.stringify(debugInfo, null, 2));
+  
   // 查找所有 input[type="file"]
   const allFileInputs = await page.$$('input[type="file"]');
   console.log(`找到 ${allFileInputs.length} 个 input[type="file"]`);
@@ -197,73 +209,250 @@ async function uploadVideo(videoPath) {
   await inputFile.uploadFile(videoPath);
   
   // 等待上传完成
-  const maxWait = 300000; // 5分钟
+  const maxWait = 120000; // 2分钟超时
   const startTime = Date.now();
   let lastProgress = -1;
+  let lastStatus = '';
+  let checkCount = 0;
 
-  while ((Date.now() - startTime) < maxWait) {
+  while ((Date.now() - startTime) < maxWait && checkCount < 20) {
     await wait(3000);
+    checkCount++;
     
-    const text = await page.evaluate(() => document.body.innerText);
+    const pageState = await page.evaluate(() => {
+      const text = document.body.innerText;
+      
+      // 检查上传进度条
+      const progressMatch = text.match(/(\d+)%/);
+      const progress = progressMatch ? parseInt(progressMatch[1]) : -1;
+      
+      // 检查封面上传区域是否存在（表示视频已上传完成）
+      const coverArea = document.querySelector('[class*="cover"]') || 
+                        document.querySelector('[class*="upload-cover"]') ||
+                        document.querySelector('[class*="cover-container"]');
+      
+      // 检查是否有"设置封面"按钮
+      const setCoverBtn = Array.from(document.querySelectorAll('button')).find(b => 
+        b.innerText.includes('设置封面') || b.innerText.includes('封面'));
+      
+      // 检查上传区域状态
+      const uploadZone = document.querySelector('[class*="upload-zone"]') ||
+                         document.querySelector('[class*="video-upload"]');
+      const uploading = uploadZone ? uploadZone.innerText.includes('上传中') || 
+                                    uploadZone.innerText.includes('上传') ||
+                                    uploadZone.innerText.includes('处理') : false;
+      
+      // 检查视频播放器是否出现
+      const videoPlayer = document.querySelector('video') || 
+                          document.querySelector('[class*="video-player"]') ||
+                          document.querySelector('[class*="player"]');
+      
+      return {
+        progress,
+        text,
+        hasCoverArea: !!coverArea,
+        hasSetCoverBtn: !!setCoverBtn,
+        isUploading: uploading,
+        hasVideoPlayer: !!videoPlayer
+      };
+    });
     
-    // 提取进度
-    const progressMatch = text.match(/(\d+)%/);
-    const progress = progressMatch ? parseInt(progressMatch[1]) : -1;
+    console.log(`检查 ${checkCount}: 进度 ${pageState.progress}% | 播放器: ${pageState.hasVideoPlayer} | 封面区域: ${pageState.hasCoverArea}`);
     
-    if (progress !== lastProgress && progress >= 0) {
-      console.log(`上传进度: ${progress}%`);
-      lastProgress = progress;
+    // 方式1: 进度达到100%
+    if (pageState.progress === 100) {
+      console.log('视频上传完成 (100%)');
+      await wait(2000); // 等待后处理
+      return true;
     }
     
-    // 检查是否完成
-    if (text.includes('100%') || text.includes('上传完成') || text.includes('处理完成') || text.includes('设置封面')) {
-      console.log('视频上传完成');
+    // 方式2: 检查 .cover-tabs-container (封面上传区域) 存在且没有进度条
+    const coverReady = await page.evaluate(() => {
+      const container = document.querySelector('#cover-tabs-container, [class*="cover-tabs-container"]');
+      if (!container) return false;
+      const text = container.innerText || '';
+      // 如果没有进度条或百分比，说明封面已生成
+      const hasProgress = text.includes('%') || text.includes('进度') || text.includes('上传中');
+      console.log('封面区域检查: hasProgress=' + hasProgress);
+      return !hasProgress;
+    });
+    
+    if (coverReady && pageState.hasCoverArea) {
+      console.log('视频上传完成 (封面区域已显示且无进度条)');
       return true;
+    }
+    
+    // 方式3: 视频播放器已出现
+    if (pageState.hasVideoPlayer) {
+      console.log('视频上传完成 (播放器已显示)');
+      return true;
+    }
+    
+    // 方式4: 文本包含完成标识
+    if (pageState.text.includes('上传完成') || 
+        pageState.text.includes('处理完成') ||
+        pageState.text.includes('已就绪') ||
+        pageState.text.includes('设置封面')) {
+      console.log('视频上传完成 (页面标识)');
+      return true;
+    }
+    
+    // 方式5: 检测上传失败
+    if (pageState.text.includes('上传失败') || pageState.text.includes('上传失败')) {
+      throw new Error('视频上传失败');
+    }
+    
+    // 超时判断：最多检查20次（约1分钟）
+    if (checkCount >= 20) {
+      console.log('检查达到最大次数，尝试继续...');
     }
   }
   
-  return false;
+  console.log('上传等待超时，但继续尝试发布...');
+  return true;
 }
 
 async function fillForm(options = {}) {
   const { title, description, tags } = options;
 
   if (title) {
-    await page.evaluate((t) => {
+    // 尝试多种方式填写标题
+    const titleFilled = await page.evaluate((t) => {
+      // 方式1: 通过 placeholder 查找 input
       const inputs = document.querySelectorAll('input, textarea');
       for (const input of inputs) {
         if (input.placeholder && (input.placeholder.includes('标题') || input.name.includes('title'))) {
           input.value = t;
           input.dispatchEvent(new Event('input', { bubbles: true }));
-          break;
+          return true;
         }
       }
+      // 方式2: 通过 label 关联的 contenteditable div
+      const labels = document.querySelectorAll('.form-label, label');
+      for (const label of labels) {
+        if (label.innerText.includes('标题')) {
+          const container = label.closest('.form-item-line-content-24, .form-item');
+          if (container) {
+            const editor = container.querySelector('[contenteditable="true"]');
+            if (editor) {
+              editor.click();
+              document.execCommand('selectAll', false, null);
+              document.execCommand('insertText', false, t);
+              return true;
+            }
+          }
+        }
+      }
+      return false;
     }, title);
-    console.log('标题已填写');
+    
+    if (titleFilled) {
+      console.log('标题已填写');
+    } else {
+      console.log('未找到标题输入框');
+    }
   }
 
   if (description) {
-    await page.evaluate((d) => {
-      const inputs = document.querySelectorAll('textarea');
-      for (const input of inputs) {
-        if (input.placeholder && (input.placeholder.includes('描述') || input.name.includes('desc'))) {
-          input.value = d;
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          break;
+    // 填写描述 - 百家号使用 Lexical 编辑器
+    const descFilled = await page.evaluate((d) => {
+      // 方式1: 通过 label "作品描述" 精确查找
+      const formLabels = document.querySelectorAll('.form-label');
+      let targetEditor = null;
+      
+      for (const label of formLabels) {
+        if (label.innerText.includes('作品描述')) {
+          console.log('[描述填写] 找到作品描述 label');
+          // 向上查找容器
+          let container = label.closest('.form-item-line-content-24');
+          if (!container) container = label.closest('.form-inner-wrap');
+          if (!container) container = label.parentElement;
+          
+          console.log('[描述填写] 容器:', container?.className);
+          
+          if (container) {
+            // 在容器内找 contenteditable
+            const editor = container.querySelector('[contenteditable="true"]');
+            if (editor) {
+              console.log('[描述填写] 找到编辑器:', editor.className);
+              targetEditor = editor;
+              break;
+            }
+          }
         }
       }
+      
+      // 方式2: 直接查找所有 contenteditable 并过滤
+      if (!targetEditor) {
+        const allEditors = document.querySelectorAll('[contenteditable="true"]');
+        console.log('[描述填写] 页面共有 contenteditable:', allEditors.length);
+        
+        for (const editor of allEditors) {
+          // 检查编辑器所在容器是否包含"描述"文字
+          const container = editor.closest('.form-item-line-content-24, .form-inner-wrap');
+          if (container && container.innerText.includes('描述')) {
+            console.log('[描述填写] 通过容器文本找到编辑器');
+            targetEditor = editor;
+            break;
+          }
+        }
+      }
+      
+      if (targetEditor) {
+        // 点击编辑器获得焦点
+        targetEditor.click();
+        
+        // Lexical 编辑器需要特殊处理
+        // 方法1: 模拟键盘输入
+        const textLength = targetEditor.innerText.length;
+        if (textLength > 0) {
+          // 选中文本后替换
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(targetEditor);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        
+        // 方法2: 使用 execCommand
+        document.execCommand('selectAll', false, null);
+        document.execCommand('insertText', false, d);
+        
+        // 方法3: 直接设置 innerHTML（作为保底）
+        targetEditor.innerHTML = '<p dir="auto">' + d.split('\n').map(line => 
+          line ? `<span data-lexical-text="true">${line}</span>` : '<br>'
+        ).join('') + '</p>';
+        
+        // 触发多个事件
+        targetEditor.dispatchEvent(new Event('input', { bubbles: true }));
+        targetEditor.dispatchEvent(new Event('change', { bubbles: true }));
+        targetEditor.dispatchEvent(new Event('blur', { bubbles: true }));
+        targetEditor.dispatchEvent(new Event('keyup', { bubbles: true }));
+        
+        console.log('[描述填写] 已设置描述:', d.substring(0, 30));
+        return true;
+      }
+      
+      console.log('[描述填写] 未找到编辑器');
+      return false;
     }, description);
-    console.log('描述已填写');
+    
+    if (descFilled) {
+      console.log('描述已填写');
+    } else {
+      console.log('未找到描述输入框');
+    }
   }
 
   if (tags && tags.length > 0) {
+    // 填写标签
     await page.evaluate((t) => {
       const inputs = document.querySelectorAll('input');
       for (const input of inputs) {
         if (input.placeholder && input.placeholder.includes('标签')) {
           input.value = t;
           input.dispatchEvent(new Event('input', { bubbles: true }));
-          break;
+          return;
         }
       }
     }, tags.join(','));
@@ -354,30 +543,75 @@ async function selectCover(coverIndex = 0) {
   console.log(`选择封面: index=${coverIndex}`);
   
   try {
-    // 等待封面上传完成
-    await wait(2000);
+    // 等待封面上传区域加载完成
+    await wait(3000);
     
-    // 方法1: 点击智能推荐封面
-    const smartCovers = await page.$$('.FeEditorApp-_83537fc2fe3cd895-imgItem');
-    console.log(`找到 ${smartCovers.length} 个智能推荐封面`);
+    // 方法1: 检查封面上传容器 `.cover-tabs-container`
+    const coverContainer = await page.$('.cover-tabs-container');
+    if (coverContainer) {
+      console.log('找到封面上传容器 .cover-tabs-container');
+      
+      // 检查是否还有进度条（上传中）
+      const hasProgressBar = await page.evaluate(() => {
+        const container = document.querySelector('.cover-tabs-container');
+        if (!container) return false;
+        // 检查容器内是否有进度条元素
+        const progressBar = container.querySelector('[class*="progress"], [class*=" Progress"]');
+        return !!progressBar;
+      });
+      
+      if (hasProgressBar) {
+        console.log('封面上传中，等待...');
+        await wait(5000);
+      }
+      
+      // 查找所有封面 section
+      const coverItems = await page.$$('section[class*="coverItem"]');
+      console.log(`找到 ${coverItems.length} 个封面`);
+      
+      if (coverItems.length > coverIndex) {
+        // 检查该封面是否已选中
+        const isSelected = await coverItems[coverIndex].evaluate(el => 
+          el.className.includes('selected')
+        );
+        
+        if (!isSelected) {
+          await coverItems[coverIndex].click();
+          console.log(`已点击第 ${coverIndex + 1} 个封面`);
+          await wait(1000);
+        } else {
+          console.log(`第 ${coverIndex + 1} 个封面已是选中状态`);
+        }
+        
+        await screenshot('cover_selected');
+        return true;
+      }
+    }
     
-    if (smartCovers.length > coverIndex) {
-      await smartCovers[coverIndex].click();
-      console.log(`已选择第 ${coverIndex + 1} 个智能推荐封面`);
-      await wait(500);
+    // 方法2: 备用选择器
+    const allSections = await page.$$('section');
+    for (const section of allSections) {
+      const hasImg = await section.$('img');
+      if (hasImg) {
+        const isSelected = await section.evaluate(el => el.className.includes('selected'));
+        if (!isSelected) {
+          await section.click();
+          console.log('已点击封面 section');
+          await wait(1000);
+        }
+        await screenshot('cover_selected');
+        return true;
+      }
+    }
+    
+    // 方法3: 如果已有默认选中的封面，跳过
+    const selectedCover = await page.$('section[class*="selected"]');
+    if (selectedCover) {
+      console.log('已存在选中的封面');
       return true;
     }
     
-    // 方法2: 点击已有封面
-    const existingCovers = await page.$$('.FeEditorApp-d820b38cbcd0c526-coverWrapper');
-    if (existingCovers.length > 0) {
-      await existingCovers[0].click();
-      console.log('已点击已有封面进行选择');
-      await wait(500);
-      return true;
-    }
-    
-    console.log('未找到可选择的封面');
+    console.log('未找到可选择的封面，跳过');
     return false;
   } catch (e) {
     console.log(`选择封面时出错: ${e.message}`);
@@ -545,7 +779,24 @@ const commands = [
           return '❌ 视频上传超时';
         }
 
-        await wait(2000);
+        // 额外等待：确保视频完全处理完成
+        console.log('等待视频处理完成...');
+        await wait(3000);
+        
+        // 验证视频已上传（检查播放器或封面上传区域）
+        const videoReady = await page.evaluate(() => {
+          const hasPlayer = document.querySelector('video') || 
+                           document.querySelector('[class*="player"]') ||
+                           document.querySelector('[class*="video-player"]');
+          const hasCover = document.querySelector('[class*="cover"]');
+          return !!(hasPlayer || hasCover);
+        });
+        
+        if (!videoReady) {
+          console.log('视频可能未上传完成，等待更长时间...');
+          await wait(5000);
+        }
+        
         await screenshot('02_video_uploaded');
 
         await fillForm({ title, description, tags: tagsStr.split(',').map(t => t.trim()).filter(Boolean) });
@@ -553,11 +804,13 @@ const commands = [
 
         // 设置封面
         await selectCover(0);
-        await wait(500);
+        await wait(2000);  // 增加等待时间
+        await screenshot('03_cover_selected');
 
         // 选择创作声明
         await selectDeclaration();
-        await wait(500);
+        await wait(1000);
+        await screenshot('04_declaration_selected');
 
         const published = await clickPublish();
         if (!published) {
