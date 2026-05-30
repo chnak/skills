@@ -1,0 +1,28 @@
+{
+  "cookies": [
+    {
+      "name": "BDUSS",
+      "value": "在此填入您的BDUSS值",
+      "domain": ".baidu.com",
+      "path": "/",
+      "secure": true,
+      "httpOnly": true
+    },
+    {
+      "name": "BAIDUID",
+      "value": "在此填入您的BAIDUID值",
+      "domain": ".baidu.com",
+      "path": "/"
+    },
+    {
+      "name": "PANPS",
+      "value": "在此填入您的PANPS值",
+      "domain": ".baidu.com",
+      "path": "/"
+    }
+  ],
+  "localStorage": {
+    "bduss": "如果需要的话填入",
+    "username": "您的用户名"
+  }
+}
