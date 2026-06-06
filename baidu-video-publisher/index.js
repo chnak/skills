@@ -738,9 +738,9 @@ const commands = [
     name: 'publish',
     description: '发布视频到百家号',
     options: [
-      { flags: '-v, --video <path>', description: '视频路径', defaultValue: '' },
-      { flags: '-t, --title <title>', description: '视频标题', defaultValue: '' },
-      { flags: '-d, --desc <description>', description: '视频描述', defaultValue: '' },
+      { flags: '-v, --video <path>', description: '视频路径(必填)', defaultValue: '' },
+      { flags: '-t, --title <title>', description: '视频标题(必填)', defaultValue: '标题' },
+      { flags: '-d, --desc <description>', description: '视频描述(必填，最多50字)', defaultValue: '发布详情' },
       { flags: '-g, --tags <tags>', description: '标签（逗号分隔）', defaultValue: '' }
     ],
     async execute(args) {
