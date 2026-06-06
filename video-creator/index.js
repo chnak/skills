@@ -111,7 +111,7 @@ module.exports = [
 		if(args.bgmSrc){
 			options.backgroundMusic={
 				src:args.bgmSrc,
-				volume: 50,
+				volume: 0.5,  // 默认音量 0-1 范围
 			}
 		}
 		const creator = new Creator(options)
@@ -353,7 +353,7 @@ module.exports = [
         const creator = getCreator(args.id);
         creator.setBackgroundMusic({
           src: args.src,
-          volume: parseInt(args.volume) || 50,
+          volume: (parseInt(args.volume) || 50) / 100,  // 转换为 0-1 范围
           fadeIn: parseFloat(args.fadeIn) || 0.5,
           fadeOut: parseFloat(args.fadeOut) || 0.5
         });
