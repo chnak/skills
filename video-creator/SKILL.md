@@ -66,9 +66,16 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 - `-d, --duration <value>`：时长（秒，默认3）
 - `-b, --background <value>`：背景色（默认：#1a1a2e）
 - `-x, --transition <value>`：转场效果（默认：fade）
+- `--image <value>`：封面图片路径或URL
+- `--imgX <value>`：图片X位置（默认：50%）
+- `--imgY <value>`：图片Y位置（默认：50%）
+- `--imgW <value>`：图片宽度（默认：100%）
+- `--imgH <value>`：图片高度（默认：100%）
+- `--imgFit <value>`：图片填充模式（cover/contain/fill，默认cover）
 
 **示例：**
 - `/fomo:addCover -i abc123 -t "视频标题" -s "副标题" -d 3`
+- `/fomo:addCover -i abc123 -t "视频标题" --image ./cover.jpg --imgW 100% --imgH 100%`
 
 ---
 
@@ -98,9 +105,16 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 - `-d, --duration <value>`：时长（秒，默认3）
 - `-b, --background <value>`：背景色（默认：#1a1a2e）
 - `-x, --transition <value>`：转场效果（默认：fade）
+- `--image <value>`：片尾图片路径或URL
+- `--imgX <value>`：图片X位置（默认：50%）
+- `--imgY <value>`：图片Y位置（默认：50%）
+- `--imgW <value>`：图片宽度（默认：100%）
+- `--imgH <value>`：图片高度（默认：100%）
+- `--imgFit <value>`：图片填充模式（cover/contain/fill，默认cover）
 
 **示例：**
 - `/fomo:addFooter -i abc123 -t "谢谢观看" -d 3`
+- `/fomo:addFooter -i abc123 -t "谢谢观看" --image ./footer.jpg --imgW 100% --imgH 100%`
 
 ---
 

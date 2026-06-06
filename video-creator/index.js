@@ -130,19 +130,43 @@ module.exports = [
 	  { flags: '-t, --title <value>', description: '主标题', defaultValue: '' },
 	  { flags: '-s, --subtitle <value>', description: '副标题', defaultValue: '' },
 	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: 3 },
-	  { flags: '-b, --background <value>', description: '背景色（默认：#1a1a2e）', defaultValue: '#1a1a2e' },
-	  { flags: '-x, --transition <value>', description: '转场效果', defaultValue: 'fade' }
+	  { flags: '-b, --background <value>', description: '背景色（默认：#1a1a2e）', defaultValue: '#0058ab' },
+	  { flags: '-x, --transition <value>', description: '转场效果', defaultValue: 'CrossZoom' },
+	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
+	  { flags: '--image <value>', description: '封面图片路径或URL', defaultValue: null },
+	  { flags: '--imgX <value>', description: '图片X位置（默认：50%）', defaultValue: '50%' },
+	  { flags: '--imgY <value>', description: '图片Y位置（默认：50%）', defaultValue: '50%' },
+	  { flags: '--imgW <value>', description: '图片宽度（默认：100%）', defaultValue: '100%' },
+	  { flags: '--imgH <value>', description: '图片高度（默认：100%）', defaultValue: '100%' },
+	  { flags: '--imgFit <value>', description: '图片填充模式（cover/contain/fill，默认cover）', defaultValue: 'cover' },
     ],
     execute: async (args, ctx) => {
       try {
         const creator = getCreator(args.id);
-        creator.addCover({
+        const coverOptions = {
           title: args.title || '',
           subtitle: args.subtitle || '',
           duration: parseInt(args.duration) || 3,
           background: args.background || '#1a1a2e',
-          transition: args.transition || 'fade'
-        });
+          transition: args.transition || 'CrossZoom',
+		  titleStytle:{fontWeight: 'bold',fontFamily: '微软雅黑',fontSize:120},
+		  subtitleStryle:{fontFamily: args.font||'微软雅黑'},
+        };
+        
+        // 如果有图片配置，添加图片
+        if (args.image) {
+          coverOptions.image = {
+            src: args.image,
+            x: args.imgX || '50%',
+            y: args.imgY || '50%',
+            width: args.imgW || '100%',
+            height: args.imgH || '100%',
+            fit: args.imgFit || 'cover',
+            animations: ['fadeIn']
+          };
+        }
+        
+        creator.addCover(coverOptions);
         return `✅ 片头已添加：${args.title || '(无标题)'}`;
       } catch (err) {
         return '❌ 添加片头失败：' + err.message;
@@ -156,7 +180,7 @@ module.exports = [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: 5 },
 	  { flags: '-b, --background <value>', description: '背景色（默认：#1a1a2e）', defaultValue: '#1a1a2e' },
-	  { flags: '-x, --transition <value>', description: '转场效果', defaultValue: null }
+	  { flags: '-x, --transition <value>', description: '转场效果', defaultValue: undefined }
     ],
     execute: async (args, ctx) => {
       try {
@@ -164,7 +188,7 @@ module.exports = [
         creator.addSlide({
           duration: parseInt(args.duration) || 5,
           background: args.background || '#1a1a2e',
-          transition: args.transition || null,
+          transition: args.transition || undefined,
           elements: []
         });
         return `✅ 内容页已添加`;
@@ -182,18 +206,42 @@ module.exports = [
 	  { flags: '-s, --subtitle <value>', description: '副标题', defaultValue: '' },
 	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: 3 },
 	  { flags: '-b, --background <value>', description: '背景色（默认：#1a1a2e）', defaultValue: '#1a1a2e' },
-	  { flags: '-x, --transition <value>', description: '转场效果', defaultValue: 'fade' }
+	  { flags: '-x, --transition <value>', description: '转场效果', defaultValue: 'CrazyParametricFun' },
+	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
+	  { flags: '--image <value>', description: '片尾图片路径或URL', defaultValue: null },
+	  { flags: '--imgX <value>', description: '图片X位置（默认：50%）', defaultValue: '50%' },
+	  { flags: '--imgY <value>', description: '图片Y位置（默认：50%）', defaultValue: '50%' },
+	  { flags: '--imgW <value>', description: '图片宽度（默认：100%）', defaultValue: '100%' },
+	  { flags: '--imgH <value>', description: '图片高度（默认：100%）', defaultValue: '100%' },
+	  { flags: '--imgFit <value>', description: '图片填充模式（cover/contain/fill，默认cover）', defaultValue: 'cover' },
     ],
     execute: async (args, ctx) => {
       try {
         const creator = getCreator(args.id);
-        creator.addFooter({
+        const footerOptions = {
           title: args.title || '',
           subtitle: args.subtitle || '',
           duration: parseInt(args.duration) || 3,
           background: args.background || '#1a1a2e',
-          transition: args.transition || 'fade'
-        });
+          transition: args.transition || 'CrazyParametricFun',
+		  titleStytle:{fontWeight: 'bold',fontFamily: '微软雅黑'},
+		  subtitleStryle:{fontFamily: args.font||'微软雅黑'},
+        };
+        
+        // 如果有图片配置，添加图片
+        if (args.image) {
+          footerOptions.image = {
+            src: args.image,
+            x: args.imgX || '50%',
+            y: args.imgY || '50%',
+            width: args.imgW || '100%',
+            height: args.imgH || '100%',
+            fit: args.imgFit || 'cover',
+            animations: ['fadeIn']
+          };
+        }
+        
+        creator.addFooter(footerOptions);
         return `✅ 片尾已添加：${args.title || '(无标题)'}`;
       } catch (err) {
         return '❌ 添加片尾失败：' + err.message;
@@ -210,7 +258,8 @@ module.exports = [
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-s, --fontSize <value>', description: '字体大小（默认：48）', defaultValue: 48 },
 	  { flags: '-c, --color <value>', description: '颜色（默认：#ffffff）', defaultValue: '#ffffff' },
-	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: null }
+	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: null },
+	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
     ],
     execute: async (args, ctx) => {
       try {
@@ -226,6 +275,7 @@ module.exports = [
           y: args.y || '50%',
           fontSize: parseInt(args.fontSize) || 48,
           color: args.color || '#ffffff',
+		  fontFamily: args.font||'微软雅黑',
           duration: args.duration ? parseInt(args.duration) : undefined
         });
         return `✅ 文本已添加：${args.text}`;
@@ -242,7 +292,8 @@ module.exports = [
 	  { flags: '-t, --text <value>', description: '字幕文本', required: true },
 	  { flags: '-p, --position <value>', description: '位置（top/center/bottom）', defaultValue: 'bottom' },
 	  { flags: '-s, --fontSize <value>', description: '字体大小（默认：48）', defaultValue: 48 },
-	  { flags: '-c, --color <value>', description: '颜色（默认：#ffffff）', defaultValue: '#ffffff' }
+	  { flags: '-c, --color <value>', description: '颜色（默认：#ffffff）', defaultValue: '#ffffff' },
+	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
     ],
     execute: async (args, ctx) => {
       try {
@@ -258,7 +309,7 @@ module.exports = [
           position: args.position || 'bottom',
           fontSize: parseInt(args.fontSize) || 48,
           color: args.color || '#ffffff',
-		  fontFamily: '微软雅黑',
+		  fontFamily: args.font||'微软雅黑',
 		  textAlign: 'center',
 		  maxLength: 20,
 		  split: 'letter',

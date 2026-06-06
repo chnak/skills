@@ -618,7 +618,17 @@ async function selectCover(coverIndex = 0) {
     return false;
   }
 }
-
+function smartTruncate(str, maxLength, suffix = '...') {
+    if (str.length <= maxLength) return str;
+    
+    let truncated = str.substring(0, maxLength);
+    // 找到最后一个空格的位置，避免截断单词
+    const lastSpace = truncated.lastIndexOf(' ');
+    if (lastSpace > 0) {
+        truncated = truncated.substring(0, lastSpace);
+    }
+    return truncated + suffix;
+}
 // ==================== 创作声明 ====================
 
 async function selectDeclaration(declarationType = '无需声明') {
@@ -740,7 +750,7 @@ const commands = [
     options: [
       { flags: '-v, --video <path>', description: '视频路径(必填)', defaultValue: '' },
       { flags: '-t, --title <title>', description: '视频标题(必填)', defaultValue: '标题' },
-      { flags: '-d, --desc <description>', description: '视频描述(必填，最多50字)', defaultValue: '发布详情' },
+      // { flags: '-d, --desc <description>', description: '视频描述(必填，最多50字)', defaultValue: '发布详情' },
       { flags: '-g, --tags <tags>', description: '标签（逗号分隔）', defaultValue: '' }
     ],
     async execute(args) {
@@ -761,7 +771,7 @@ const commands = [
         }
         const videoPath = parsed.v || parsed.video || null;
         const title = parsed.t || parsed.title || null;
-        const description = parsed.d || parsed.desc || null;
+        const description = smartTruncate(parsed.d || parsed.desc || "",45,'...');
         const tagsStr = parsed.g || parsed.tags || '';
       if (!videoPath) {
 		   return '❌ 缺少参数{video}';
