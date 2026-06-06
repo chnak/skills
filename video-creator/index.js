@@ -110,7 +110,8 @@ module.exports = [
 		}
 		if(args.bgmSrc){
 			options.backgroundMusic={
-				src:args.bgmSrc
+				src:args.bgmSrc,
+				volume: 50,
 			}
 		}
 		const creator = new Creator(options)
@@ -185,13 +186,14 @@ module.exports = [
     execute: async (args, ctx) => {
       try {
         const creator = getCreator(args.id);
+        const slideIndex = creator.slides.length + 1; // 添加前的数量+1 = 新slide的序号
         creator.addSlide({
           duration: parseInt(args.duration) || 5,
           background: args.background || '#1a1a2e',
           transition: args.transition || undefined,
           elements: []
         });
-        return `✅ 内容页已添加`;
+        return `✅ 内容页已添加（第${slideIndex}页，可用 -n ${slideIndex} 指定）`;
       } catch (err) {
         return '❌ 添加内容页失败：' + err.message;
       }
@@ -250,10 +252,11 @@ module.exports = [
   },
   {
     name: 'addText',
-    description: '添加文本元素到最后一个slide',
+    description: '添加文本元素到指定slide',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-t, --text <value>', description: '文本内容', required: true },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认第一个）', defaultValue: 1 },
 	  { flags: '-x, --x <value>', description: 'X位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-s, --fontSize <value>', description: '字体大小（默认：48）', defaultValue: 48 },
@@ -267,7 +270,12 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slide = creator.slides[creator.slides.length - 1];
+        const slideIndex = parseInt(args.slideIndex) || 1;
+        const targetIndex = slideIndex > 0 ? slideIndex - 1 : 0;
+        if (targetIndex < 0 || targetIndex >= creator.slides.length) {
+          throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
+        }
+        const slide = creator.slides[targetIndex];
         slide.elements.push({
           type: 'text',
           text: args.text,
@@ -286,10 +294,11 @@ module.exports = [
   },
   {
     name: 'addSubtitle',
-    description: '添加字幕元素到最后一个slide（带TTS）',
+    description: '添加字幕元素到指定slide（带TTS）',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-t, --text <value>', description: '字幕文本', required: true },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认第一个）', defaultValue: 1 },
 	  { flags: '-p, --position <value>', description: '位置（top/center/bottom）', defaultValue: 'bottom' },
 	  { flags: '-s, --fontSize <value>', description: '字体大小（默认：48）', defaultValue: 48 },
 	  { flags: '-c, --color <value>', description: '颜色（默认：#ffffff）', defaultValue: '#ffffff' },
@@ -301,7 +310,12 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slide = creator.slides[creator.slides.length - 1];
+        const slideIndex = parseInt(args.slideIndex) || 1;
+        const targetIndex = slideIndex > 0 ? slideIndex - 1 : 0;
+        if (targetIndex < 0 || targetIndex >= creator.slides.length) {
+          throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
+        }
+        const slide = creator.slides[targetIndex];
         slide.elements.push({
           type: 'subtitle',
           text: args.text,
@@ -330,7 +344,7 @@ module.exports = [
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-s, --src <value>', description: '音频文件路径', required: true },
-	  { flags: '-v, --volume <value>', description: '音量0-100（默认：80）', defaultValue: 80 },
+	  { flags: '-v, --volume <value>', description: '音量0-100（默认：50）', defaultValue: 50 },
 	  { flags: '--fadeIn <value>', description: '淡入秒数（默认：0.5）', defaultValue: 0.5 },
 	  { flags: '--fadeOut <value>', description: '淡出秒数（默认：0.5）', defaultValue: 0.5 }
     ],
@@ -339,7 +353,7 @@ module.exports = [
         const creator = getCreator(args.id);
         creator.setBackgroundMusic({
           src: args.src,
-          volume: parseInt(args.volume) || 80,
+          volume: parseInt(args.volume) || 50,
           fadeIn: parseFloat(args.fadeIn) || 0.5,
           fadeOut: parseFloat(args.fadeOut) || 0.5
         });
@@ -431,10 +445,11 @@ module.exports = [
   },
   {
     name: 'addImage',
-    description: '添加图片元素到最后一个slide',
+    description: '添加图片元素到指定slide',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-s, --src <value>', description: '图片路径或URL（必填）', required: true },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 0 },
 	  { flags: '-x, --x <value>', description: 'X位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-w, --width <value>', description: '宽度（默认：100%）', defaultValue: '100%' },
@@ -448,7 +463,12 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slide = creator.slides[creator.slides.length - 1];
+        const slideIndex = parseInt(args.slideIndex) || 0;
+        const targetIndex = slideIndex > 0 ? slideIndex - 1 : creator.slides.length - 1;
+        if (targetIndex < 0 || targetIndex >= creator.slides.length) {
+          throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
+        }
+        const slide = creator.slides[targetIndex];
         slide.elements.push({
           type: 'image',
           src: args.src,
@@ -469,10 +489,11 @@ module.exports = [
   },
   {
     name: 'addVideo',
-    description: '添加视频素材到最后一个slide',
+    description: '添加视频素材到指定slide',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-s, --src <value>', description: '视频路径或URL（必填）', required: true },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 0 },
 	  { flags: '-x, --x <value>', description: 'X位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-w, --width <value>', description: '宽度（默认：100%）', defaultValue: '100%' },
@@ -486,7 +507,12 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slide = creator.slides[creator.slides.length - 1];
+        const slideIndex = parseInt(args.slideIndex) || 0;
+        const targetIndex = slideIndex > 0 ? slideIndex - 1 : creator.slides.length - 1;
+        if (targetIndex < 0 || targetIndex >= creator.slides.length) {
+          throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
+        }
+        const slide = creator.slides[targetIndex];
         slide.elements.push({
           type: 'video',
           src: args.src,
@@ -507,9 +533,10 @@ module.exports = [
   },
   {
     name: 'addRect',
-    description: '添加矩形元素到最后一个slide',
+    description: '添加矩形元素到指定slide',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 0 },
 	  { flags: '-x, --x <value>', description: 'X位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-w, --width <value>', description: '宽度（默认：200）', defaultValue: 200 },
@@ -524,7 +551,12 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slide = creator.slides[creator.slides.length - 1];
+        const slideIndex = parseInt(args.slideIndex) || 0;
+        const targetIndex = slideIndex > 0 ? slideIndex - 1 : creator.slides.length - 1;
+        if (targetIndex < 0 || targetIndex >= creator.slides.length) {
+          throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
+        }
+        const slide = creator.slides[targetIndex];
         slide.elements.push({
           type: 'rect',
           x: args.x || '50%',
@@ -543,9 +575,10 @@ module.exports = [
   },
   {
     name: 'addCircle',
-    description: '添加圆形元素到最后一个slide',
+    description: '添加圆形元素到指定slide',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 0 },
 	  { flags: '-x, --x <value>', description: 'X位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-r, --radius <value>', description: '半径（默认：50）', defaultValue: 50 },
@@ -558,7 +591,12 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slide = creator.slides[creator.slides.length - 1];
+        const slideIndex = parseInt(args.slideIndex) || 0;
+        const targetIndex = slideIndex > 0 ? slideIndex - 1 : creator.slides.length - 1;
+        if (targetIndex < 0 || targetIndex >= creator.slides.length) {
+          throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
+        }
+        const slide = creator.slides[targetIndex];
         slide.elements.push({
           type: 'circle',
           x: args.x || '50%',
@@ -732,6 +770,7 @@ module.exports = [
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-t, --type <value>', description: '元素类型（必填）：text/image/video/subtitle/rect/circle', required: true },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 0 },
 	  { flags: '-j, --json <value>', description: '元素配置JSON字符串', defaultValue: '{}' }
     ],
     execute: async (args, ctx) => {
@@ -740,7 +779,12 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slide = creator.slides[creator.slides.length - 1];
+        const slideIndex = parseInt(args.slideIndex) || 0;
+        const targetIndex = slideIndex > 0 ? slideIndex - 1 : creator.slides.length - 1;
+        if (targetIndex < 0 || targetIndex >= creator.slides.length) {
+          throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
+        }
+        const slide = creator.slides[targetIndex];
         const config = JSON.parse(args.json || '{}');
         slide.elements.push({
           type: args.type,

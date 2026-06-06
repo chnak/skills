@@ -7,7 +7,6 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 
 基于 fomo 库，使用链式 API 描述视频结构，自动生成 FFmpeg 命令渲染视频。
 
-
 ## 命令
 
 ### /fomo:setCookie
@@ -120,11 +119,12 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 
 ### /fomo:addText
 
-添加文本元素到最后一个 slide。
+添加文本元素到指定 slide。
 
 **参数：**
 - `-i, --id <value>`：视频ID（必填）
 - `-t, --text <value>`：文本内容（必填）
+- `-n, --slideIndex <value>`：目标slide序号（1-based，默认最后一个）
 - `-x, --x <value>`：X位置（默认：50%）
 - `-y, --y <value>`：Y位置（默认：50%）
 - `-s, --fontSize <value>`：字体大小（默认：48）
@@ -133,32 +133,36 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 
 **示例：**
 - `/fomo:addText -i abc123 -t "标题文字" -x 50% -y 30% -s 64`
+- `/fomo:addText -i abc123 -n 1 -t "第一页标题"`（向第1页添加）
 
 ---
 
 ### /fomo:addSubtitle
 
-添加字幕元素到最后一个 slide（带 TTS 自动朗读）。
+添加字幕元素到指定 slide（带 TTS 自动朗读）。
 
 **参数：**
 - `-i, --id <value>`：视频ID（必填）
 - `-t, --text <value>`：字幕文本（必填）
+- `-n, --slideIndex <value>`：目标slide序号（1-based，默认最后一个）
 - `-p, --position <value>`：位置（top/center/bottom，默认bottom）
 - `-s, --fontSize <value>`：字体大小（默认：48）
 - `-c, --color <value>`：颜色（默认：#ffffff）
 
 **示例：**
 - `/fomo:addSubtitle -i abc123 -t "这是自动朗读的字幕" -p bottom`
+- `/fomo:addSubtitle -i abc123 -n 2 -t "第二页字幕"`（向第2页添加）
 
 ---
 
 ### /fomo:addImage
 
-添加图片元素到最后一个 slide。
+添加图片元素到指定 slide。
 
 **参数：**
 - `-i, --id <value>`：视频ID（必填）
 - `-s, --src <value>`：图片路径或URL（必填）
+- `-n, --slideIndex <value>`：目标slide序号（1-based，默认最后一个）
 - `-x, --x <value>`：X位置（默认：50%）
 - `-y, --y <value>`：Y位置（默认：50%）
 - `-w, --width <value>`：宽度（默认：100%）
@@ -168,17 +172,19 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 
 **示例：**
 - `/fomo:addImage -i abc123 -s ./image.jpg -w 60%`
+- `/fomo:addImage -i abc123 -n 1 -s ./cover.jpg`（向第1页添加）
 - `/fomo:addImage -i abc123 -s https://example.com/image.jpg -f contain`
 
 ---
 
 ### /fomo:addVideo
 
-添加视频素材到最后一个 slide。
+添加视频素材到指定 slide。
 
 **参数：**
 - `-i, --id <value>`：视频ID（必填）
 - `-s, --src <value>`：视频路径或URL（必填）
+- `-n, --slideIndex <value>`：目标slide序号（1-based，默认最后一个）
 - `-x, --x <value>`：X位置（默认：50%）
 - `-y, --y <value>`：Y位置（默认：50%）
 - `-w, --width <value>`：宽度（默认：100%）
@@ -188,15 +194,17 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 
 **示例：**
 - `/fomo:addVideo -i abc123 -s ./video.mp4 -w 100%`
+- `/fomo:addVideo -i abc123 -n 1 -s ./bg.mp4`（向第1页添加）
 
 ---
 
 ### /fomo:addRect
 
-添加矩形元素到最后一个 slide。
+添加矩形元素到指定 slide。
 
 **参数：**
 - `-i, --id <value>`：视频ID（必填）
+- `-n, --slideIndex <value>`：目标slide序号（1-based，默认最后一个）
 - `-x, --x <value>`：X位置（默认：50%）
 - `-y, --y <value>`：Y位置（默认：50%）
 - `-w, --width <value>`：宽度（默认：200）
@@ -207,15 +215,17 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 
 **示例：**
 - `/fomo:addRect -i abc123 -w 300 -h 150 -c #ff6b6b -r 10`
+- `/fomo:addRect -i abc123 -n 1 -w 400 -h 200`（向第1页添加）
 
 ---
 
 ### /fomo:addCircle
 
-添加圆形元素到最后一个 slide。
+添加圆形元素到指定 slide。
 
 **参数：**
 - `-i, --id <value>`：视频ID（必填）
+- `-n, --slideIndex <value>`：目标slide序号（1-based，默认最后一个）
 - `-x, --x <value>`：X位置（默认：50%）
 - `-y, --y <value>`：Y位置（默认：50%）
 - `-r, --radius <value>`：半径（默认：50）
@@ -224,6 +234,7 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 
 **示例：**
 - `/fomo:addCircle -i abc123 -r 80 -c #4ecdc4`
+- `/fomo:addCircle -i abc123 -n 2 -r 60`（向第2页添加）
 
 ---
 
@@ -234,12 +245,12 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 **参数：**
 - `-i, --id <value>`：视频ID（必填）
 - `-s, --src <value>`：音频文件路径（必填）
-- `-v, --volume <value>`：音量0-100（默认：80）
+- `-v, --volume <value>`：音量0-100（默认：50）
 - `--fadeIn <value>`：淡入秒数（默认：0.5）
 - `--fadeOut <value>`：淡出秒数（默认：0.5）
 
 **示例：**
-- `/fomo:setBgm -i abc123 -s ./music.mp3 -v 70`
+- `/fomo:setBgm -i abc123 -s ./music.mp3 -v 50`
 - `/fomo:setBgm -i abc123 -s ./music.mp3 --fadeIn 1 --fadeOut 2`
 
 ---
@@ -350,11 +361,12 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 **参数：**
 - `-i, --id <value>`：视频ID（必填）
 - `-t, --type <value>`：元素类型（必填：text/image/video/subtitle/rect/circle）
+- `-n, --slideIndex <value>`：目标slide序号（1-based，默认最后一个）
 - `-j, --json <value>`：元素配置JSON字符串
 
 **示例：**
 - `/fomo:addElement -i abc123 -t subtitle -j "{\"text\":\"字幕内容\",\"tts\":true,\"position\":\"bottom\"}"`
-- `/fomo:addElement -i abc123 -t rect -j "{\"x\":\"50%\",\"y\":\"50%\",\"width\":200,\"height\":100,\"fill\":\"#ff6b6b\"}"`
+- `/fomo:addElement -i abc123 -n 1 -t rect -j "{\"x\":\"50%\",\"y\":\"50%\",\"width\":200,\"height\":100,\"fill\":\"#ff6b6b\"}"`
 
 ---
 
@@ -531,21 +543,22 @@ const creator = new Creator({
 // 2. 添加片头
 /fomo:addCover -i abc123 -t "视频标题" -s "副标题" -d 3
 
-// 3. 添加内容页
+// 3. 添加内容页（第1页）
 /fomo:addSlide -i abc123 -d 8 -b #1a1a2e
 
-// 4. 添加文本
-/fomo:addText -i abc123 -t "第一页标题" -x 50% -y 35% -s 72
+// 4. 添加文本（第1页）
+/fomo:addText -i abc123 -n 1 -t "第一页标题" -x 50% -y 35% -s 72
 
-// 5. 添加字幕（TTS）
-/fomo:addSubtitle -i abc123 -t "这是自动朗读的字幕内容" -p bottom
+// 5. 添加字幕（第1页，TTS）
+/fomo:addSubtitle -i abc123 -n 1 -t "这是自动朗读的字幕内容" -p bottom
 
-// 6. 添加图片
-/fomo:addImage -i abc123 -s ./demo.jpg -w 80%
+// 6. 添加图片（第1页）
+/fomo:addImage -i abc123 -n 1 -s ./demo.jpg -w 80%
 
-// 7. 添加更多内容页
+// 7. 添加更多内容页（第2页）
 /fomo:addSlide -i abc123 -d 6
-/fomo:addText -i abc123 -t "第二页内容" -s 48
+/fomo:addText -i abc123 -n 2 -t "第二页内容" -s 48
+/fomo:addSubtitle -i abc123 -n 2 -t "第二页字幕内容"
 
 // 8. 添加片尾
 /fomo:addFooter -i abc123 -t "谢谢观看" -d 3
@@ -558,6 +571,29 @@ const creator = new Creator({
 
 // 11. 渲染视频
 /fomo:render -i abc123 -o ./output/myvideo.mp4
+```
+
+## slide 序号说明
+
+- `-n 1` = 第1个slide（第一个添加的）
+- `-n 2` = 第2个slide
+- 不指定 `-n` = 最后一个slide
+
+**示例流程：**
+```bash
+# 创建3个slide
+/fomo:addSlide -i abc123  # slide 1
+/fomo:addSlide -i abc123  # slide 2  
+/fomo:addSlide -i abc123  # slide 3 (最后)
+
+// 向第1页添加图片
+/fomo:addImage -i abc123 -n 1 -s ./cover.jpg
+
+// 向第2页添加字幕
+/fomo:addSubtitle -i abc123 -n 2 -t "第二页字幕"
+
+// 向最后一页（第3页）添加视频
+/fomo:addVideo -i abc123 -s ./bg.mp4
 ```
 
 ## 注意事项
