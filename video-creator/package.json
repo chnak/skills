@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "fomo": "github:chnak/fomo"
+    "fomo": "git+https://github.com/chnak/fomo.git"
   }
 }
