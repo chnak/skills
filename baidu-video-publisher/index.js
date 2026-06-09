@@ -161,8 +161,26 @@ async function applyAuth() {
   console.log('授权验证成功');
 }
 
-async function gotoPublisher() {
+async function gotoPublisher(desc) {
   await page.goto(URLS.publisher, { waitUntil: 'networkidle2' });
+  await page.setRequestInterception(true)
+  page.on('request', (request) => {
+	if (request.method()==='POST'&&request.url().indexOf('pcui/article/publish')>-1) {
+		var body=request.postData()
+		const params = new URLSearchParams(body);
+		params.set('title', desc);
+		const newBody = params.toString();
+		return request.continue({
+			method: 'POST',
+			postData: newBody,
+			headers: {
+				...request.headers()
+			}
+			});
+	} else{
+		request.continue()
+	} 
+  })
   await wait(3000);
   await screenshot('01_publisher_page');
 }
@@ -771,7 +789,7 @@ const commands = [
         }
         const videoPath = parsed.v || parsed.video || null;
         const title = parsed.t || parsed.title || null;
-        const description = smartTruncate(parsed.d || parsed.desc || "",45,'...');
+        const description = smartTruncate(title || "",45,'...');
         const tagsStr = parsed.g || parsed.tags || '';
       if (!videoPath) {
 		   return '❌ 缺少参数{video}';
@@ -781,7 +799,7 @@ const commands = [
 		
         await initBrowser();
         await applyAuth();
-        await gotoPublisher();
+        await gotoPublisher(description);
 
         const uploadResult = await uploadVideo(videoPath);
         if (!uploadResult) {

@@ -1,0 +1,17 @@
+{
+  "rl8cbzb6": {
+    "id": "rl8cbzb6",
+    "createdAt": 1781000370257,
+    "ttsConfig": {
+      "enabled": true,
+      "voice": "Chinese (Mandarin)_News_Anchor",
+      "rate": 0,
+      "volume": 100,
+      "model": "speech-2.8-hd",
+      "apiKey": null
+    },
+    "hasCover": false,
+    "slides": 0,
+    "hasFooter": false
+  }
+}

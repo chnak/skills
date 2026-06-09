@@ -1,16 +1,58 @@
 const path = require('path');
+const fs = require('fs');
 const {Creator,resource} = require('fomo');
 const videos_map=new Map()
+
+// 持久化存储路径（存储项目元数据，因为 Creator 对象无法序列化）
+const META_FILE = path.join(__dirname, 'videos_meta.json');
 
 function generateId() {
     return Math.random().toString(36).substring(2, 10);
 }
 
-// 获取 Creator 实例
+// 加载持久化的项目元数据
+function loadMeta() {
+    try {
+        if (fs.existsSync(META_FILE)) {
+            return JSON.parse(fs.readFileSync(META_FILE, 'utf-8'));
+        }
+    } catch (e) {}
+    return {};
+}
+
+// 保存项目元数据
+function saveMeta() {
+    try {
+        const meta = {};
+        videos_map.forEach((creator, id) => {
+            meta[id] = {
+                id,
+                createdAt: Date.now(),
+                ttsConfig: creator.ttsConfig || null,
+                hasCover: !!creator.cover,
+                slides: creator.slides?.length || 0,
+                hasFooter: !!creator.footer
+            };
+        });
+        fs.writeFileSync(META_FILE, JSON.stringify(meta, null, 2));
+    } catch (e) {}
+}
+
+// 获取 Creator 实例（支持从磁盘恢复空壳 Creator）
 function getCreator(videoId) {
-    const creator = videos_map.get(videoId);
+    let creator = videos_map.get(videoId);
     if (!creator) {
-        throw new Error(`视频项目不存在: ${videoId}`);
+        // 尝试从元数据恢复
+        const meta = loadMeta();
+        if (meta[videoId]) {
+            // 创建一个新 Creator，使用之前保存的配置
+            creator = new Creator({
+                tts: meta[videoId].ttsConfig || { enabled: true, voice: 'female-shaonv-jingpin', rate: 0, volume: 100, model: 'speech-2.8-hd' }
+            });
+            videos_map.set(videoId, creator);
+        } else {
+            throw new Error(`视频项目不存在: ${videoId}`);
+        }
     }
     return creator;
 }
@@ -53,7 +95,7 @@ module.exports = [
 				cookie:cookie
 			}
 		})
-        return JSON.stringify(videos);
+        return `\`\`\`json\n${JSON.stringify(videos, null, 2)}\n\`\`\``;
       } catch (err) {
         return '❌ 获取页面失败：' + err.message;
       }
@@ -117,6 +159,7 @@ module.exports = [
 		const creator = new Creator(options)
 		const uuid=generateId()
 		videos_map.set(uuid,creator)
+		saveMeta()
         return `✅ 视频创建成功，videoId=${uuid}`;
       } catch (err) {
         return '❌ 视频创建失败：' + err.message;
@@ -262,7 +305,7 @@ module.exports = [
 	  { flags: '-s, --fontSize <value>', description: '字体大小（默认：48）', defaultValue: 48 },
 	  { flags: '-c, --color <value>', description: '颜色（默认：#ffffff）', defaultValue: '#ffffff' },
 	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: null },
-	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
+	  { flags: '-f, --font <value>', description: '字体（默认:Microsoft YaHei）', defaultValue: 'Microsoft YaHei' },
     ],
     execute: async (args, ctx) => {
       try {
@@ -270,8 +313,8 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slideIndex = parseInt(args.slideIndex) || 1;
-        const targetIndex = slideIndex > 0 ? slideIndex - 1 : 0;
+        const slideIndex = parseInt(args.slideIndex);
+        const targetIndex = slideIndex - 1;
         if (targetIndex < 0 || targetIndex >= creator.slides.length) {
           throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
         }
@@ -283,7 +326,7 @@ module.exports = [
           y: args.y || '50%',
           fontSize: parseInt(args.fontSize) || 48,
           color: args.color || '#ffffff',
-		  fontFamily: args.font||'微软雅黑',
+		  fontFamily: args.font||'Microsoft YaHei',
           duration: args.duration ? parseInt(args.duration) : undefined
         });
         return `✅ 文本已添加：${args.text}`;
@@ -298,11 +341,11 @@ module.exports = [
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-t, --text <value>', description: '字幕文本', required: true },
-	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认第一个）', defaultValue: 1 },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 1 },
 	  { flags: '-p, --position <value>', description: '位置（top/center/bottom）', defaultValue: 'bottom' },
 	  { flags: '-s, --fontSize <value>', description: '字体大小（默认：48）', defaultValue: 48 },
 	  { flags: '-c, --color <value>', description: '颜色（默认：#ffffff）', defaultValue: '#ffffff' },
-	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
+	  { flags: '-f, --font <value>', description: '字体（默认:Microsoft YaHei）', defaultValue: 'Microsoft YaHei' },
     ],
     execute: async (args, ctx) => {
       try {
@@ -310,8 +353,8 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slideIndex = parseInt(args.slideIndex) || 1;
-        const targetIndex = slideIndex > 0 ? slideIndex - 1 : 0;
+        const slideIndex = parseInt(args.slideIndex);
+        const targetIndex = slideIndex - 1;
         if (targetIndex < 0 || targetIndex >= creator.slides.length) {
           throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
         }
@@ -323,14 +366,14 @@ module.exports = [
           position: args.position || 'bottom',
           fontSize: parseInt(args.fontSize) || 48,
           color: args.color || '#ffffff',
-		  fontFamily: args.font||'微软雅黑',
+		  fontFamily: args.font||'Microsoft YaHei',
 		  textAlign: 'center',
 		  maxLength: 20,
 		  split: 'letter',
 		  splitDelay: 0.06,
 		  splitDuration: 0.3,
 		  tts:true,
-		  animations: ['fadeIn']
+		  animations: ['zoomInFade']
         });
         return `✅ 字幕已添加（带TTS）：${args.text}`;
       } catch (err) {
@@ -437,6 +480,7 @@ module.exports = [
           throw new Error(`视频项目不存在: ${args.id}`);
         }
         videos_map.delete(args.id);
+		saveMeta();
         return `✅ 已删除视频项目：${args.id}`;
       } catch (err) {
         return '❌ 删除失败：' + err.message;
@@ -449,7 +493,7 @@ module.exports = [
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-s, --src <value>', description: '图片路径或URL（必填）', required: true },
-	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 0 },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 1 },
 	  { flags: '-x, --x <value>', description: 'X位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-w, --width <value>', description: '宽度（默认：100%）', defaultValue: '100%' },
@@ -463,8 +507,8 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slideIndex = parseInt(args.slideIndex) || 0;
-        const targetIndex = slideIndex > 0 ? slideIndex - 1 : creator.slides.length - 1;
+        const slideIndex = parseInt(args.slideIndex);
+        const targetIndex = slideIndex - 1;
         if (targetIndex < 0 || targetIndex >= creator.slides.length) {
           throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
         }
@@ -493,7 +537,7 @@ module.exports = [
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-s, --src <value>', description: '视频路径或URL（必填）', required: true },
-	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 0 },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 1 },
 	  { flags: '-x, --x <value>', description: 'X位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-w, --width <value>', description: '宽度（默认：100%）', defaultValue: '100%' },
@@ -507,8 +551,8 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slideIndex = parseInt(args.slideIndex) || 0;
-        const targetIndex = slideIndex > 0 ? slideIndex - 1 : creator.slides.length - 1;
+        const slideIndex = parseInt(args.slideIndex);
+        const targetIndex = slideIndex - 1;
         if (targetIndex < 0 || targetIndex >= creator.slides.length) {
           throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
         }
@@ -536,7 +580,7 @@ module.exports = [
     description: '添加矩形元素到指定slide',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
-	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 0 },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 1 },
 	  { flags: '-x, --x <value>', description: 'X位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-w, --width <value>', description: '宽度（默认：200）', defaultValue: 200 },
@@ -551,8 +595,8 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slideIndex = parseInt(args.slideIndex) || 0;
-        const targetIndex = slideIndex > 0 ? slideIndex - 1 : creator.slides.length - 1;
+        const slideIndex = parseInt(args.slideIndex);
+        const targetIndex = slideIndex - 1;
         if (targetIndex < 0 || targetIndex >= creator.slides.length) {
           throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
         }
@@ -578,7 +622,7 @@ module.exports = [
     description: '添加圆形元素到指定slide',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
-	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 0 },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 1 },
 	  { flags: '-x, --x <value>', description: 'X位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-r, --radius <value>', description: '半径（默认：50）', defaultValue: 50 },
@@ -591,8 +635,8 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slideIndex = parseInt(args.slideIndex) || 0;
-        const targetIndex = slideIndex > 0 ? slideIndex - 1 : creator.slides.length - 1;
+        const slideIndex = parseInt(args.slideIndex);
+        const targetIndex = slideIndex - 1;
         if (targetIndex < 0 || targetIndex >= creator.slides.length) {
           throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
         }
@@ -770,7 +814,7 @@ module.exports = [
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-t, --type <value>', description: '元素类型（必填）：text/image/video/subtitle/rect/circle', required: true },
-	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 0 },
+	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 1 },
 	  { flags: '-j, --json <value>', description: '元素配置JSON字符串', defaultValue: '{}' }
     ],
     execute: async (args, ctx) => {
@@ -779,8 +823,8 @@ module.exports = [
         if (creator.slides.length === 0) {
           throw new Error('请先添加slide');
         }
-        const slideIndex = parseInt(args.slideIndex) || 0;
-        const targetIndex = slideIndex > 0 ? slideIndex - 1 : creator.slides.length - 1;
+        const slideIndex = parseInt(args.slideIndex);
+        const targetIndex = slideIndex - 1;
         if (targetIndex < 0 || targetIndex >= creator.slides.length) {
           throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
         }

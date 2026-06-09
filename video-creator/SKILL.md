@@ -7,6 +7,170 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 
 基于 fomo 库，使用链式 API 描述视频结构，自动生成 FFmpeg 命令渲染视频。
 
+> **AI Agent 调用入口**：在 LLM/Agent 环境中通过 `ext_call` 调用本技能时，**所有参数必须打包成单个命令行字符串**（详见下方「AI Agent 调用规范」一节）。
+
+---
+
+## 预设动画（animations）
+fadeIn, fadeOut, slideInTop, slideInBottom, slideInLeft, slideInRight, slideOutTop, slideOutBottom, slideOutLeft, slideOutRight, zoomIn, zoomOut, bigIn, bigOut, rotateIn, rotateOut, fadeInUp, fadeInDown, fadeOutUp, fadeOutDown, bounceIn, bounceOut, rotateInLeft, rotateInRight, rotateOutLeft, rotateOutRight, zoomInFade, zoomOutFade, zoomRotateIn, zoomRotateOut, bounceInUp, bounceInDown, bounceInLeft, bounceInRight, bounceOutUp, bounceOutDown, zoomInUp, zoomInDown, zoomInLeft, zoomInRight, zoomOutUp, zoomOutDown, zoomOutLeft, zoomOutRight, flipInX, flipInY, flipOutX, flipOutY, elasticIn, elasticOut, swing, pulse, shake, flash, fadeInScale, fadeOutScale, fadeInRotate, fadeOutRotate, slideFadeInLeft, slideFadeInRight, slideFadeInUp, slideFadeInDown, slideFadeOutLeft, slideFadeOutRight, slideFadeOutUp, slideFadeOutDown
+
+## 支持的转场效果（transactions）
+Bounce, BowTieHorizontal, BowTieVertical, ButterflyWaveScrawler, CircleCrop, ColourDistance, CrazyParametricFun, CrossZoom, Directional, DoomScreenTransition, Dreamy, DreamyZoom, GlitchDisplace, GlitchMemories, GridFlip, InvertedPageCurl, LinearBlur, Mosaic, PolkaDotsCurtain, Radial, SimpleZoom, StereoViewer, Swirl, WaterDrop, ZoomInCircles, angular, burn, cannabisleaf, circle, circleopen, colorphase, crosshatch, crosswarp, cube, directionalwarp, directionalwipe, displacement, doorway, fade, fadecolor, fadegrayscale, flyeye, heart, hexagonalize, kaleidoscope, luma, luminance_melt, morph, multiply_blend, perlin, pinwheel, pixelize, polar_function, randomsquares, ripple, rotate_scale_fade, squareswire, squeeze, swap, undulatingBurnOut, wind, windowblinds, windowslice, wipeDown, wipeLeft, wipeRight, wipeUp, directional-left, directional-right, directional-down, directional-up
+
+---
+
+## AI Agent 调用规范（重要）
+
+本技能的命令是 commander.js 风格，但通过 `ext_call` 调用时，**所有命令行参数必须拼成一个字符串**，作为 `args.args` 字段的值传入，而不是传 JSON 对象。
+
+### 正确格式 ✅
+```javascript
+ext_call({
+  plugin: "skill",
+  tool: "fomo:setTts",
+  args: { args: "-i p4642nwk -v 'Chinese (Mandarin)_News_Anchor' -e true" }
+})
+```
+
+### 错误格式 ❌（会报"视频项目不存在: undefined"）
+```javascript
+// ❌ 错误1：直接传键值对，ext_call 会把对象当整体塞进 args 参数
+ext_call({
+  plugin: "skill",
+  tool: "fomo:setTts",
+  args: { id: "p4642nwk", voice: "..." }
+})
+
+// ❌ 错误2：把 options 当对象 key
+ext_call({
+  plugin: "skill",
+  tool: "fomo:setTts",
+  args: { "-i": "p4642nwk", "-v": "..." }
+})
+
+// ❌ 错误3：直接传字符串但拼错
+ext_call({
+  plugin: "skill",
+  tool: "fomo:setTts",
+  args: "-i p4642nwk -v 'Voice'"  // 缺少外层 args 包装
+})
+```
+
+### 常见踩坑
+| 错误信息 | 原因 | 修复 |
+|---------|------|------|
+| `视频项目不存在: undefined` | `args.id` 是 undefined，说明参数未正确解析 | 用 `args: { args: "-i <projectId> ..." }` 格式 |
+| `视频项目不存在: p4642nwk`（但项目已存在）| 用了 `--id` 而非 `-i`，或参数顺序问题 | 严格使用短选项 `-i` |
+
+### 状态保持
+- 视频项目存放在技能模块级 `videos_map` 中，**跨 `ext_call` 调用是共享的**
+- 一次 `creator` 命令返回的 ID（如 `p4642nwk`），后续命令通过 `-i <id>` 引用
+- 项目仅在当前进程实例内有效，重启后会丢失（用 `list` 命令可查看当前所有项目）
+
+### 参数值包含空格/特殊字符
+必须用单引号包裹整个值，例如：
+```javascript
+"-t 'TTS字幕测试'"          // 标题含中文
+"-s 'TTS字幕测试完成'"      // 副标题
+"-v 'Chinese (Mandarin)_News_Anchor'"  // 音色ID含空格和括号
+```
+
+---
+
+## 完整工作流示例（AI Agent）
+
+下面是一个**测试通过**的端到端示例，可直接套用：
+
+```javascript
+// 1. 创建视频项目（16:9，开启TTS）
+ext_call({
+  plugin: "skill",
+  tool: "fomo:creator",
+  args: { args: "-r 16:9 -t true -v 'Chinese (Mandarin)_News_Anchor' -a true" }
+})
+// 返回项目ID，例如 p4642nwk
+
+// 2. 配置 TTS 语音（可选，creator 已设置的话可跳过）
+ext_call({
+  plugin: "skill",
+  tool: "fomo:setTts",
+  args: { args: "-i p4642nwk -v 'Chinese (Mandarin)_News_Anchor' -e true" }
+})
+
+// 3. 添加片头
+ext_call({
+  plugin: "skill",
+  tool: "fomo:addCover",
+  args: { args: "-i p4642nwk -t 'TTS字幕测试' -s '新闻播报风格' -d 3" }
+})
+
+// 4. 添加第1个内容页（先 addSlide 再 addSubtitle）
+ext_call({
+  plugin: "skill",
+  tool: "fomo:addSlide",
+  args: { args: "-i p4642nwk -d 6 -b '#1a1a2e'" }
+})
+ext_call({
+  plugin: "skill",
+  tool: "fomo:addSubtitle",
+  args: { args: "-i p4642nwk -n 1 -t '欢迎观看TTS字幕视频测试' -p bottom -s 56" }
+})
+
+// 5. 添加第2个内容页
+ext_call({
+  plugin: "skill",
+  tool: "fomo:addSlide",
+  args: { args: "-i p4642nwk -d 6 -b '#1a2e2e'" }
+})
+ext_call({
+  plugin: "skill",
+  tool: "fomo:addSubtitle",
+  args: { args: "-i p4642nwk -n 2 -t '采用新闻播报专业音色' -p bottom -s 56" }
+})
+
+// 6. 添加第3个内容页
+ext_call({
+  plugin: "skill",
+  tool: "fomo:addSlide",
+  args: { args: "-i p4642nwk -d 6 -b '#2e1a1a'" }
+})
+ext_call({
+  plugin: "skill",
+  tool: "fomo:addSubtitle",
+  args: { args: "-i p4642nwk -n 3 -t '字幕自动与语音同步生成' -p bottom -s 56" }
+})
+
+// 7. 添加片尾
+ext_call({
+  plugin: "skill",
+  tool: "fomo:addFooter",
+  args: { args: "-i p4642nwk -t '感谢观看' -s 'TTS字幕测试完成' -d 3" }
+})
+
+// 8. 设置背景音乐
+ext_call({
+  plugin: "skill",
+  tool: "fomo:setBgm",
+  args: { args: "-i p4642nwk -s ./audio/cover.mp3 -v 30" }
+})
+
+// 9. 查看状态（可选）
+ext_call({
+  plugin: "skill",
+  tool: "fomo:status",
+  args: { args: "-i p4642nwk" }
+})
+
+// 10. 渲染输出
+ext_call({
+  plugin: "skill",
+  tool: "fomo:render",
+  args: { args: "-i p4642nwk -o ./output/TTS测试_NewsAnchor.mp4" }
+})
+```
+
+---
+
 ## 命令
 
 ### /fomo:setCookie
@@ -51,6 +215,7 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 - `/fomo:creator -r 16:9 -t true -v female-tianmei`
 - `/fomo:creator -r 9:16 -t false`
 - `/fomo:creator -r 16:9 -b ./music.mp3`
+- `/fomo:creator -r 16:9 -t true -v 'Chinese (Mandarin)_News_Anchor'`（新闻播报）
 
 ---
 
@@ -152,6 +317,8 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 **示例：**
 - `/fomo:addSubtitle -i abc123 -t "这是自动朗读的字幕" -p bottom`
 - `/fomo:addSubtitle -i abc123 -n 2 -t "第二页字幕"`（向第2页添加）
+
+**注意：** 字幕必须 TTS 启用（`setTts -e true`）才会真正生成语音；否则只显示文字不朗读。
 
 ---
 
@@ -269,6 +436,15 @@ description: 视频生成技能。基于 fomo 库创建视频，支持片头/内
 **示例：**
 - `/fomo:setTts -i abc123 -v female-tianmei -r 10`
 - `/fomo:setTts -i abc123 -e false`
+- `/fomo:setTts -i abc123 -v 'Chinese (Mandarin)_News_Anchor' -e true`（**新闻播报风格**）
+
+**推荐音色：**
+- `Chinese (Mandarin)_News_Anchor` - **新闻播报**（专业、正式，推荐用于新闻视频）
+- `female-shaonv-jingpin` - 女声精品
+- `female-tianmei` - 女声甜妹
+- `male-baise` - 男声白蛇
+
+可用 `/fomo:getVoices` 查看完整音色列表。
 
 ---
 
@@ -489,6 +665,7 @@ const creator = new Creator({
 ```
 
 **常用语音：**
+- `Chinese (Mandarin)_News_Anchor` - **新闻播报**（专业、正式）
 - `female-shaonv-jingpin` - 女声精品
 - `female-tianmei` - 女声甜妹
 - `male-baise` - 男声白蛇
@@ -604,3 +781,4 @@ const creator = new Creator({
 4. 输出目录需要可写权限
 5. 默认分辨率：16:9 (1920x1080)、9:16 (1080x1920)、1:1 (1600x1600)
 6. 默认帧率：30fps
+7. **AI Agent 调用时**，所有参数必须拼成单个字符串 `"-i xxx -v yyy"` 传入 `args.args`，详见上方「AI Agent 调用规范」
