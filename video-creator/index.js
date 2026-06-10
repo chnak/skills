@@ -5,7 +5,14 @@ const videos_map=new Map()
 
 // 持久化存储路径（存储项目元数据，因为 Creator 对象无法序列化）
 const META_FILE = path.join(__dirname, 'videos_meta.json');
-
+const FONTS={
+	"微软雅黑":"http://45.77.38.55:28021/down/JphXBRXatPzu.ttc",
+	"微软雅黑粗体":"http://45.77.38.55:28021/down/eJJ0yP2EnPme.ttc",
+	"微软雅黑细体":"http://45.77.38.55:28021/down/oxDlazqerEnN.ttc",
+	"黑体":"http://45.77.38.55:28021/down/3ZvTmWcGE9C3.ttf",
+	"宋体":"http://45.77.38.55:28021/down/dKis33jtBoWd.ttc",
+	"楷体":"http://45.77.38.55:28021/down/RnRBsN8qB5fP.ttf"
+}
 function generateId() {
     return Math.random().toString(36).substring(2, 10);
 }
@@ -102,6 +109,17 @@ module.exports = [
     }
   },
   {
+    name: 'getFonts',
+    description: '获取支持的字体列表',
+    execute: async (args,ctx) => {
+      try {
+        return `✅ 支持以下字体： ${Object.keys(FONTS).join(', ')}`;
+      } catch (err) {
+        return '❌ 获取字体失败：' + err.message;
+      }
+    }
+  },
+  {
     name: 'creator',
     description: '新建视频',
 	options: [
@@ -176,13 +194,9 @@ module.exports = [
 	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: 3 },
 	  { flags: '-b, --background <value>', description: '背景色（默认：#1a1a2e）', defaultValue: '#0058ab' },
 	  { flags: '-x, --transition <value>', description: '转场效果', defaultValue: 'CrossZoom' },
-	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
-	  { flags: '--image <value>', description: '封面图片路径或URL', defaultValue: null },
-	  { flags: '--imgX <value>', description: '图片X位置（默认：50%）', defaultValue: '50%' },
-	  { flags: '--imgY <value>', description: '图片Y位置（默认：50%）', defaultValue: '50%' },
-	  { flags: '--imgW <value>', description: '图片宽度（默认：100%）', defaultValue: '100%' },
-	  { flags: '--imgH <value>', description: '图片高度（默认：100%）', defaultValue: '100%' },
-	  { flags: '--imgFit <value>', description: '图片填充模式（cover/contain/fill，默认cover）', defaultValue: 'cover' },
+	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑粗体）', defaultValue: '微软雅黑粗体' },
+	  { flags: '-m, --image <value>', description: '封面图片路径或URL', defaultValue: "" },
+	  { flags: '-g, --imgFit <value>', description: '图片填充模式（cover/contain/fill，默认cover）', defaultValue: 'cover' },
     ],
     execute: async (args, ctx) => {
       try {
@@ -193,20 +207,17 @@ module.exports = [
           duration: parseInt(args.duration) || 3,
           background: args.background || '#1a1a2e',
           transition: args.transition || 'CrossZoom',
-		  titleStytle:{fontWeight: 'bold',fontFamily: '微软雅黑',fontSize:120},
-		  subtitleStryle:{fontFamily: args.font||'微软雅黑'},
+		  titleStyle:{fontWeight: 'bold',fontSize:120},
+		  subtitleStyle:{fontSize:80},
         };
+		coverOptions.titleStyle.fontPath=FONTS[args.font]||FONTS['微软雅黑粗体']
+		coverOptions.subtitleStyle.fontPath=FONTS[args.font]||FONTS['微软雅黑粗体']
         
         // 如果有图片配置，添加图片
         if (args.image) {
           coverOptions.image = {
             src: args.image,
-            x: args.imgX || '50%',
-            y: args.imgY || '50%',
-            width: args.imgW || '100%',
-            height: args.imgH || '100%',
             fit: args.imgFit || 'cover',
-            animations: ['fadeIn']
           };
         }
         
@@ -252,7 +263,7 @@ module.exports = [
 	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: 3 },
 	  { flags: '-b, --background <value>', description: '背景色（默认：#1a1a2e）', defaultValue: '#1a1a2e' },
 	  { flags: '-x, --transition <value>', description: '转场效果', defaultValue: 'CrazyParametricFun' },
-	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
+	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑粗体）', defaultValue: '微软雅黑粗体' },
 	  { flags: '--image <value>', description: '片尾图片路径或URL', defaultValue: null },
 	  { flags: '--imgX <value>', description: '图片X位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '--imgY <value>', description: '图片Y位置（默认：50%）', defaultValue: '50%' },
@@ -269,10 +280,11 @@ module.exports = [
           duration: parseInt(args.duration) || 3,
           background: args.background || '#1a1a2e',
           transition: args.transition || 'CrazyParametricFun',
-		  titleStytle:{fontWeight: 'bold',fontFamily: '微软雅黑'},
-		  subtitleStryle:{fontFamily: args.font||'微软雅黑'},
+		  titleStyle:{fontWeight: 'bold'},
+		  subtitleStyle:{},
         };
-        
+        footerOptions.titleStyle.fontPath=FONTS[args.font]||FONTS['微软雅黑粗体']
+		footerOptions.subtitleStyle.fontPath=FONTS[args.font]||FONTS['微软雅黑粗体']
         // 如果有图片配置，添加图片
         if (args.image) {
           footerOptions.image = {
@@ -305,7 +317,7 @@ module.exports = [
 	  { flags: '-s, --fontSize <value>', description: '字体大小（默认：48）', defaultValue: 48 },
 	  { flags: '-c, --color <value>', description: '颜色（默认：#ffffff）', defaultValue: '#ffffff' },
 	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: null },
-	  { flags: '-f, --font <value>', description: '字体（默认:Microsoft YaHei）', defaultValue: 'Microsoft YaHei' },
+	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
     ],
     execute: async (args, ctx) => {
       try {
@@ -326,7 +338,7 @@ module.exports = [
           y: args.y || '50%',
           fontSize: parseInt(args.fontSize) || 48,
           color: args.color || '#ffffff',
-		  fontFamily: args.font||'Microsoft YaHei',
+		  fontPath: FONTS[args.font]||FONTS['微软雅黑'],
           duration: args.duration ? parseInt(args.duration) : undefined
         });
         return `✅ 文本已添加：${args.text}`;
@@ -345,7 +357,7 @@ module.exports = [
 	  { flags: '-p, --position <value>', description: '位置（top/center/bottom）', defaultValue: 'bottom' },
 	  { flags: '-s, --fontSize <value>', description: '字体大小（默认：48）', defaultValue: 48 },
 	  { flags: '-c, --color <value>', description: '颜色（默认：#ffffff）', defaultValue: '#ffffff' },
-	  { flags: '-f, --font <value>', description: '字体（默认:Microsoft YaHei）', defaultValue: 'Microsoft YaHei' },
+	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
     ],
     execute: async (args, ctx) => {
       try {
@@ -366,7 +378,7 @@ module.exports = [
           position: args.position || 'bottom',
           fontSize: parseInt(args.fontSize) || 48,
           color: args.color || '#ffffff',
-		  fontFamily: args.font||'Microsoft YaHei',
+		  fontPath: FONTS[args.font]||FONTS['微软雅黑'],
 		  textAlign: 'center',
 		  maxLength: 20,
 		  split: 'letter',
@@ -832,6 +844,7 @@ module.exports = [
         const config = JSON.parse(args.json || '{}');
         slide.elements.push({
           type: args.type,
+		  fontPath: FONTS[(config.fontFamily||config.font)]||FONTS['微软雅黑'],
           ...config
         });
         return `✅ 元素已添加：${args.type}`;
