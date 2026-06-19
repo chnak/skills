@@ -1,37 +1,7 @@
 {
-  "99juj05f": {
-    "id": "99juj05f",
-    "createdAt": 1781060252564,
-    "ttsConfig": {
-      "enabled": true,
-      "voice": "female-shaonv-jingpin",
-      "rate": 0,
-      "volume": 100,
-      "model": "speech-2.8-hd",
-      "apiKey": null
-    },
-    "hasCover": true,
-    "slides": 0,
-    "hasFooter": false
-  },
-  "96te6nyj": {
-    "id": "96te6nyj",
-    "createdAt": 1781060252564,
-    "ttsConfig": {
-      "enabled": true,
-      "voice": "female-shaonv-jingpin",
-      "rate": 0,
-      "volume": 100,
-      "model": "speech-2.8-hd",
-      "apiKey": null
-    },
-    "hasCover": false,
-    "slides": 0,
-    "hasFooter": false
-  },
-  "t1092ae3": {
-    "id": "t1092ae3",
-    "createdAt": 1781060252564,
+  "yrnm21yv": {
+    "id": "yrnm21yv",
+    "createdAt": 1781840837177,
     "ttsConfig": {
       "enabled": true,
       "voice": "female-shaonv-jingpin",

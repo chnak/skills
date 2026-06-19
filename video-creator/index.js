@@ -13,6 +13,84 @@ const FONTS={
 	"宋体":"http://45.77.38.55:28021/down/dKis33jtBoWd.ttc",
 	"楷体":"http://45.77.38.55:28021/down/RnRBsN8qB5fP.ttf"
 }
+
+const TRANSITIONS = [
+  "Bounce",
+  "BowTieHorizontal",
+  "BowTieVertical",
+  "ButterflyWaveScrawler",
+  "CircleCrop",
+  "ColourDistance",
+  "CrazyParametricFun",
+  "CrossZoom",
+  "Directional",
+  "DoomScreenTransition",
+  "Dreamy",
+  "DreamyZoom",
+  "GlitchDisplace",
+  "GlitchMemories",
+  "GridFlip",
+  "InvertedPageCurl",
+  "LinearBlur",
+  "Mosaic",
+  "PolkaDotsCurtain",
+  "Radial",
+  "SimpleZoom",
+  "StereoViewer",
+  "Swirl",
+  "WaterDrop",
+  "ZoomInCircles",
+  "angular",
+  "burn",
+  "cannabisleaf",
+  "circle",
+  "circleopen",
+  "colorphase",
+  "crosshatch",
+  "crosswarp",
+  "cube",
+  "directionalwarp",
+  "directionalwipe",
+  "displacement",
+  "doorway",
+  "fade",
+  "fadecolor",
+  "fadegrayscale",
+  "flyeye",
+  "heart",
+  "hexagonalize",
+  "kaleidoscope",
+  "luma",
+  "luminance_melt",
+  "morph",
+  "multiply_blend",
+  "perlin",
+  "pinwheel",
+  "pixelize",
+  "polar_function",
+  "randomsquares",
+  "ripple",
+  "rotate_scale_fade",
+  "squareswire",
+  "squeeze",
+  "swap",
+  "undulatingBurnOut",
+  "wind",
+  "windowblinds",
+  "windowslice",
+  "wipeDown",
+  "wipeLeft",
+  "wipeRight",
+  "wipeUp",
+  "directional-left",
+  "directional-right",
+  "directional-down",
+  "directional-up"
+];
+const TRANSITIONSOBJECT = TRANSITIONS.reduce((acc, item) => {
+  acc[item] = item;
+  return acc;
+}, {});
 function generateId() {
     return Math.random().toString(36).substring(2, 10);
 }
@@ -54,7 +132,7 @@ function getCreator(videoId) {
         if (meta[videoId]) {
             // 创建一个新 Creator，使用之前保存的配置
             creator = new Creator({
-                tts: meta[videoId].ttsConfig || { enabled: true, voice: 'female-shaonv-jingpin', rate: 0, volume: 100, model: 'speech-2.8-hd' }
+                tts: meta[videoId].ttsConfig || { enabled: true, voice: 'Chinese (Mandarin)_News_Anchor', rate: 0, volume: 100, model: 'speech-2.8-hd' }
             });
             videos_map.set(videoId, creator);
         } else {
@@ -137,7 +215,7 @@ module.exports = [
 			fps: 30,               // 帧率，默认 30
 			tts: {                 // TTS 全局默认配置
 				enabled: false,      // 全局是否启用 TTS
-				voice: 'female-shaonv-jingpin', // 语音 ID
+				voice: 'Chinese (Mandarin)_News_Anchor', // 语音 ID
 				rate: 0,             // 语速，-50 ~ +100（映射到 MiniMax 0.5x ~ 2.0x）
 				volume: 100,         // 音量，0 ~ 100
 				model: 'speech-2.8-hd'
@@ -200,6 +278,8 @@ module.exports = [
     ],
     execute: async (args, ctx) => {
       try {
+		
+		args.transition=TRANSITIONSOBJECT[args.transition]||'CrossZoom'
         const creator = getCreator(args.id);
         const coverOptions = {
           title: args.title || '',
@@ -239,6 +319,7 @@ module.exports = [
     ],
     execute: async (args, ctx) => {
       try {
+		args.transition=TRANSITIONSOBJECT[args.transition]||undefined
         const creator = getCreator(args.id);
         const slideIndex = creator.slides.length + 1; // 添加前的数量+1 = 新slide的序号
         creator.addSlide({
@@ -273,6 +354,7 @@ module.exports = [
     ],
     execute: async (args, ctx) => {
       try {
+		args.transition=TRANSITIONSOBJECT[args.transition]||'CrazyParametricFun'
         const creator = getCreator(args.id);
         const footerOptions = {
           title: args.title || '',
@@ -700,7 +782,7 @@ module.exports = [
     execute: async (args, ctx) => {
       try {
         const creator = getCreator(args.id);
-        if (args.voice) creator.ttsConfig.voice = args.voice;
+        if (args.voice) creator.ttsConfig.voice = 'Chinese (Mandarin)_News_Anchor';
         if (args.rate !== undefined) creator.ttsConfig.rate = parseInt(args.rate);
         if (args.volume !== undefined) creator.ttsConfig.volume = parseInt(args.volume);
         if (args.enable !== undefined) creator.ttsConfig.enabled = args.enable === 'true';

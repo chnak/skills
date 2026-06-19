@@ -1,11 +1,11 @@
 ---
-name: fomo
-description: 视频生成技能。基于 fomo 库创建视频，支持片头/内容页/片尾、TTS 字幕、背景音乐、转场动画。当用户说"创建视频"、"生成视频"、"制作视频"时调用。
+name: creator
+description: 视频生成技能。基于 creator 库创建视频，支持片头/内容页/片尾、TTS 字幕、背景音乐、转场动画。当用户说"创建视频"、"生成视频"、"制作视频"时调用。
 ---
 
-# Fomo 视频生成技能
+# creator 视频生成技能
 
-基于 fomo 库，使用链式 API 描述视频结构，自动生成 FFmpeg 命令渲染视频。
+基于 creator 库，使用链式 API 描述视频结构，自动生成 FFmpeg 命令渲染视频。
 
 > **AI Agent 调用入口**：在 LLM/Agent 环境中通过 `ext_call` 调用本技能时，**所有参数必须打包成单个命令行字符串**（详见下方「AI Agent 调用规范」一节）。
 
@@ -27,8 +27,8 @@ Bounce, BowTieHorizontal, BowTieVertical, ButterflyWaveScrawler, CircleCrop, Col
 ```javascript
 ext_call({
   plugin: "skill",
-  tool: "fomo:setTts",
-  args: { args: "-i p4642nwk -v 'Chinese (Mandarin)_News_Anchor' -e true" }
+  tool: "creator:setTts",
+  args: { command: "-i p4642nwk -v 'Chinese (Mandarin)_News_Anchor' -e true" }
 })
 ```
 
@@ -37,21 +37,21 @@ ext_call({
 // ❌ 错误1：直接传键值对，ext_call 会把对象当整体塞进 args 参数
 ext_call({
   plugin: "skill",
-  tool: "fomo:setTts",
+  tool: "creator:setTts",
   args: { id: "p4642nwk", voice: "..." }
 })
 
 // ❌ 错误2：把 options 当对象 key
 ext_call({
   plugin: "skill",
-  tool: "fomo:setTts",
+  tool: "creator:setTts",
   args: { "-i": "p4642nwk", "-v": "..." }
 })
 
 // ❌ 错误3：直接传字符串但拼错
 ext_call({
   plugin: "skill",
-  tool: "fomo:setTts",
+  tool: "creator:setTts",
   args: "-i p4642nwk -v 'Voice'"  // 缺少外层 args 包装
 })
 ```
@@ -59,7 +59,7 @@ ext_call({
 ### 常见踩坑
 | 错误信息 | 原因 | 修复 |
 |---------|------|------|
-| `视频项目不存在: undefined` | `args.id` 是 undefined，说明参数未正确解析 | 用 `args: { args: "-i <projectId> ..." }` 格式 |
+| `视频项目不存在: undefined` | `args.id` 是 undefined，说明参数未正确解析 | 用 `args: { command: "-i <projectId> ..." }` 格式 |
 | `视频项目不存在: p4642nwk`（但项目已存在）| 用了 `--id` 而非 `-i`，或参数顺序问题 | 严格使用短选项 `-i` |
 
 ### 状态保持
@@ -85,87 +85,87 @@ ext_call({
 // 1. 创建视频项目（16:9，开启TTS）
 ext_call({
   plugin: "skill",
-  tool: "fomo:creator",
-  args: { args: "-r 16:9 -t true -v 'Chinese (Mandarin)_News_Anchor' -a true" }
+  tool: "creator:creator",
+  args: { command: "-r 16:9 -t true -v 'Chinese (Mandarin)_News_Anchor' -a true" }
 })
 // 返回项目ID，例如 p4642nwk
 
 // 2. 配置 TTS 语音（可选，creator 已设置的话可跳过）
 ext_call({
   plugin: "skill",
-  tool: "fomo:setTts",
-  args: { args: "-i p4642nwk -v 'Chinese (Mandarin)_News_Anchor' -e true" }
+  tool: "creator:setTts",
+  args: { command: "-i p4642nwk -v 'Chinese (Mandarin)_News_Anchor' -e true" }
 })
 
 // 3. 添加片头
 ext_call({
   plugin: "skill",
-  tool: "fomo:addCover",
-  args: { args: "-i p4642nwk -t 'TTS字幕测试' -s '新闻播报风格' -d 3" }
+  tool: "creator:addCover",
+  args: { command: "-i p4642nwk -t 'TTS字幕测试' -s '新闻播报风格' -d 3" }
 })
 
 // 4. 添加第1个内容页（先 addSlide 再 addSubtitle）
 ext_call({
   plugin: "skill",
-  tool: "fomo:addSlide",
-  args: { args: "-i p4642nwk -d 6 -b '#1a1a2e'" }
+  tool: "creator:addSlide",
+  args: { command: "-i p4642nwk -d 6 -b '#1a1a2e'" }
 })
 ext_call({
   plugin: "skill",
-  tool: "fomo:addSubtitle",
-  args: { args: "-i p4642nwk -n 1 -t '欢迎观看TTS字幕视频测试' -p bottom -s 56" }
+  tool: "creator:addSubtitle",
+  args: { command: "-i p4642nwk -n 1 -t '欢迎观看TTS字幕视频测试' -p bottom -s 56" }
 })
 
 // 5. 添加第2个内容页
 ext_call({
   plugin: "skill",
-  tool: "fomo:addSlide",
-  args: { args: "-i p4642nwk -d 6 -b '#1a2e2e'" }
+  tool: "creator:addSlide",
+  args: { command: "-i p4642nwk -d 6 -b '#1a2e2e'" }
 })
 ext_call({
   plugin: "skill",
-  tool: "fomo:addSubtitle",
-  args: { args: "-i p4642nwk -n 2 -t '采用新闻播报专业音色' -p bottom -s 56" }
+  tool: "creator:addSubtitle",
+  args: { command: "-i p4642nwk -n 2 -t '采用新闻播报专业音色' -p bottom -s 56" }
 })
 
 // 6. 添加第3个内容页
 ext_call({
   plugin: "skill",
-  tool: "fomo:addSlide",
-  args: { args: "-i p4642nwk -d 6 -b '#2e1a1a'" }
+  tool: "creator:addSlide",
+  args: { command: "-i p4642nwk -d 6 -b '#2e1a1a'" }
 })
 ext_call({
   plugin: "skill",
-  tool: "fomo:addSubtitle",
-  args: { args: "-i p4642nwk -n 3 -t '字幕自动与语音同步生成' -p bottom -s 56" }
+  tool: "creator:addSubtitle",
+  args: { command: "-i p4642nwk -n 3 -t '字幕自动与语音同步生成' -p bottom -s 56" }
 })
 
 // 7. 添加片尾
 ext_call({
   plugin: "skill",
-  tool: "fomo:addFooter",
-  args: { args: "-i p4642nwk -t '感谢观看' -s 'TTS字幕测试完成' -d 3" }
+  tool: "creator:addFooter",
+  args: { command: "-i p4642nwk -t '感谢观看' -s 'TTS字幕测试完成' -d 3" }
 })
 
 // 8. 设置背景音乐
 ext_call({
   plugin: "skill",
-  tool: "fomo:setBgm",
-  args: { args: "-i p4642nwk -s ./audio/cover.mp3 -v 30" }
+  tool: "creator:setBgm",
+  args: { command: "-i p4642nwk -s ./audio/cover.mp3 -v 30" }
 })
 
 // 9. 查看状态（可选）
 ext_call({
   plugin: "skill",
-  tool: "fomo:status",
-  args: { args: "-i p4642nwk" }
+  tool: "creator:status",
+  args: { command: "-i p4642nwk" }
 })
 
 // 10. 渲染输出
 ext_call({
   plugin: "skill",
-  tool: "fomo:render",
-  args: { args: "-i p4642nwk -o ./output/TTS测试_NewsAnchor.mp4" }
+  tool: "creator:render",
+  args: { command: "-i p4642nwk -o ./output/TTS测试_NewsAnchor.mp4" }
 })
 ```
 
@@ -173,7 +173,7 @@ ext_call({
 
 ## 命令
 
-### /fomo:setCookie
+### /creator:setCookie
 
 设置百度 Cookie，用于获取百度视频素材。
 
@@ -181,11 +181,11 @@ ext_call({
 - `args`：Cookie 字符串（直接传入）
 
 **示例：**
-- `/fomo:setCookie BDUSS=xxx; BIDUPSID=xxx; ...`
+- `/creator:setCookie BDUSS=xxx; BIDUPSID=xxx; ...`
 
 ---
 
-### /fomo:baiduVideos
+### /creator:baiduVideos
 
 搜索百度视频素材。
 
@@ -195,12 +195,12 @@ ext_call({
 - `-t, --type <value>`：类型（默认：video,支持：video/image）
 
 **示例：**
-- `/fomo:baiduVideos -s 明朝`
-- `/fomo:baiduVideos -s 风景 -p true -t video`
+- `/creator:baiduVideos -s 明朝`
+- `/creator:baiduVideos -s 风景 -p true -t video`
 
 ---
 
-### /fomo:creator
+### /creator:creator
 
 新建视频项目。
 
@@ -212,14 +212,14 @@ ext_call({
 - `-b, --bgmSrc <value>`：背景音乐路径
 
 **示例：**
-- `/fomo:creator -r 16:9 -t true -v female-tianmei`
-- `/fomo:creator -r 9:16 -t false`
-- `/fomo:creator -r 16:9 -b ./music.mp3`
-- `/fomo:creator -r 16:9 -t true -v 'Chinese (Mandarin)_News_Anchor'`（新闻播报）
+- `/creator:creator -r 16:9 -t true -v female-tianmei`
+- `/creator:creator -r 9:16 -t false`
+- `/creator:creator -r 16:9 -b ./music.mp3`
+- `/creator:creator -r 16:9 -t true -v 'Chinese (Mandarin)_News_Anchor'`（新闻播报）
 
 ---
 
-### /fomo:addCover
+### /creator:addCover
 
 添加片头。
 
@@ -238,12 +238,12 @@ ext_call({
 - `--imgFit <value>`：图片填充模式（cover/contain/fill，默认cover）
 
 **示例：**
-- `/fomo:addCover -i abc123 -t "视频标题" -s "副标题" -d 3`
-- `/fomo:addCover -i abc123 -t "视频标题" --image ./cover.jpg --imgW 100% --imgH 100%`
+- `/creator:addCover -i abc123 -t "视频标题" -s "副标题" -d 3`
+- `/creator:addCover -i abc123 -t "视频标题" --image ./cover.jpg --imgW 100% --imgH 100%`
 
 ---
 
-### /fomo:addSlide
+### /creator:addSlide
 
 添加内容页。
 
@@ -254,11 +254,11 @@ ext_call({
 - `-x, --transition <value>`：转场效果
 
 **示例：**
-- `/fomo:addSlide -i abc123 -d 8 -b #1a1a2e`
+- `/creator:addSlide -i abc123 -d 8 -b #1a1a2e`
 
 ---
 
-### /fomo:addFooter
+### /creator:addFooter
 
 添加片尾。
 
@@ -277,12 +277,12 @@ ext_call({
 - `--imgFit <value>`：图片填充模式（cover/contain/fill，默认cover）
 
 **示例：**
-- `/fomo:addFooter -i abc123 -t "谢谢观看" -d 3`
-- `/fomo:addFooter -i abc123 -t "谢谢观看" --image ./footer.jpg --imgW 100% --imgH 100%`
+- `/creator:addFooter -i abc123 -t "谢谢观看" -d 3`
+- `/creator:addFooter -i abc123 -t "谢谢观看" --image ./footer.jpg --imgW 100% --imgH 100%`
 
 ---
 
-### /fomo:addText
+### /creator:addText
 
 添加文本元素到指定 slide。
 
@@ -297,12 +297,12 @@ ext_call({
 - `-d, --duration <value>`：时长（秒）
 
 **示例：**
-- `/fomo:addText -i abc123 -t "标题文字" -x 50% -y 30% -s 64`
-- `/fomo:addText -i abc123 -n 1 -t "第一页标题"`（向第1页添加）
+- `/creator:addText -i abc123 -t "标题文字" -x 50% -y 30% -s 64`
+- `/creator:addText -i abc123 -n 1 -t "第一页标题"`（向第1页添加）
 
 ---
 
-### /fomo:addSubtitle
+### /creator:addSubtitle
 
 添加字幕元素到指定 slide（带 TTS 自动朗读）。
 
@@ -315,14 +315,14 @@ ext_call({
 - `-c, --color <value>`：颜色（默认：#ffffff）
 
 **示例：**
-- `/fomo:addSubtitle -i abc123 -t "这是自动朗读的字幕" -p bottom`
-- `/fomo:addSubtitle -i abc123 -n 2 -t "第二页字幕"`（向第2页添加）
+- `/creator:addSubtitle -i abc123 -t "这是自动朗读的字幕" -p bottom`
+- `/creator:addSubtitle -i abc123 -n 2 -t "第二页字幕"`（向第2页添加）
 
 **注意：** 字幕必须 TTS 启用（`setTts -e true`）才会真正生成语音；否则只显示文字不朗读。
 
 ---
 
-### /fomo:addImage
+### /creator:addImage
 
 添加图片元素到指定 slide。
 
@@ -338,13 +338,13 @@ ext_call({
 - `-d, --duration <value>`：时长（秒）
 
 **示例：**
-- `/fomo:addImage -i abc123 -s ./image.jpg -w 60%`
-- `/fomo:addImage -i abc123 -n 1 -s ./cover.jpg`（向第1页添加）
-- `/fomo:addImage -i abc123 -s https://example.com/image.jpg -f contain`
+- `/creator:addImage -i abc123 -s ./image.jpg -w 60%`
+- `/creator:addImage -i abc123 -n 1 -s ./cover.jpg`（向第1页添加）
+- `/creator:addImage -i abc123 -s https://example.com/image.jpg -f contain`
 
 ---
 
-### /fomo:addVideo
+### /creator:addVideo
 
 添加视频素材到指定 slide。
 
@@ -360,12 +360,12 @@ ext_call({
 - `-d, --duration <value>`：时长（秒，留空自动探测）
 
 **示例：**
-- `/fomo:addVideo -i abc123 -s ./video.mp4 -w 100%`
-- `/fomo:addVideo -i abc123 -n 1 -s ./bg.mp4`（向第1页添加）
+- `/creator:addVideo -i abc123 -s ./video.mp4 -w 100%`
+- `/creator:addVideo -i abc123 -n 1 -s ./bg.mp4`（向第1页添加）
 
 ---
 
-### /fomo:addRect
+### /creator:addRect
 
 添加矩形元素到指定 slide。
 
@@ -381,12 +381,12 @@ ext_call({
 - `-d, --duration <value>`：时长（秒）
 
 **示例：**
-- `/fomo:addRect -i abc123 -w 300 -h 150 -c #ff6b6b -r 10`
-- `/fomo:addRect -i abc123 -n 1 -w 400 -h 200`（向第1页添加）
+- `/creator:addRect -i abc123 -w 300 -h 150 -c #ff6b6b -r 10`
+- `/creator:addRect -i abc123 -n 1 -w 400 -h 200`（向第1页添加）
 
 ---
 
-### /fomo:addCircle
+### /creator:addCircle
 
 添加圆形元素到指定 slide。
 
@@ -400,12 +400,12 @@ ext_call({
 - `-d, --duration <value>`：时长（秒）
 
 **示例：**
-- `/fomo:addCircle -i abc123 -r 80 -c #4ecdc4`
-- `/fomo:addCircle -i abc123 -n 2 -r 60`（向第2页添加）
+- `/creator:addCircle -i abc123 -r 80 -c #4ecdc4`
+- `/creator:addCircle -i abc123 -n 2 -r 60`（向第2页添加）
 
 ---
 
-### /fomo:setBgm
+### /creator:setBgm
 
 设置背景音乐。
 
@@ -417,12 +417,12 @@ ext_call({
 - `--fadeOut <value>`：淡出秒数（默认：0.5）
 
 **示例：**
-- `/fomo:setBgm -i abc123 -s ./music.mp3 -v 50`
-- `/fomo:setBgm -i abc123 -s ./music.mp3 --fadeIn 1 --fadeOut 2`
+- `/creator:setBgm -i abc123 -s ./music.mp3 -v 50`
+- `/creator:setBgm -i abc123 -s ./music.mp3 --fadeIn 1 --fadeOut 2`
 
 ---
 
-### /fomo:setTts
+### /creator:setTts
 
 设置 TTS 语音配置。
 
@@ -434,9 +434,9 @@ ext_call({
 - `-e, --enable <value>`：是否启用（true/false，默认true）
 
 **示例：**
-- `/fomo:setTts -i abc123 -v female-tianmei -r 10`
-- `/fomo:setTts -i abc123 -e false`
-- `/fomo:setTts -i abc123 -v 'Chinese (Mandarin)_News_Anchor' -e true`（**新闻播报风格**）
+- `/creator:setTts -i abc123 -v female-tianmei -r 10`
+- `/creator:setTts -i abc123 -e false`
+- `/creator:setTts -i abc123 -v 'Chinese (Mandarin)_News_Anchor' -e true`（**新闻播报风格**）
 
 **推荐音色：**
 - `Chinese (Mandarin)_News_Anchor` - **新闻播报**（专业、正式，推荐用于新闻视频）
@@ -444,11 +444,11 @@ ext_call({
 - `female-tianmei` - 女声甜妹
 - `male-baise` - 男声白蛇
 
-可用 `/fomo:getVoices` 查看完整音色列表。
+可用 `/creator:getVoices` 查看完整音色列表。
 
 ---
 
-### /fomo:setTransition
+### /creator:setTransition
 
 设置随机转场/动画。
 
@@ -458,20 +458,20 @@ ext_call({
 - `-a, --animation <value>`：是否开启随机动画（true/false，默认false）
 
 **示例：**
-- `/fomo:setTransition -i abc123 -t true -a true`
+- `/creator:setTransition -i abc123 -t true -a true`
 
 ---
 
-### /fomo:getVoices
+### /creator:getVoices
 
 获取可用的语音列表。
 
 **示例：**
-- `/fomo:getVoices`
+- `/creator:getVoices`
 
 ---
 
-### /fomo:status
+### /creator:status
 
 查看视频项目状态。
 
@@ -479,11 +479,11 @@ ext_call({
 - `-i, --id <value>`：视频ID（必填）
 
 **示例：**
-- `/fomo:status -i abc123`
+- `/creator:status -i abc123`
 
 ---
 
-### /fomo:render
+### /creator:render
 
 渲染视频。
 
@@ -492,20 +492,20 @@ ext_call({
 - `-o, --output <value>`：输出路径（默认：./output/video.mp4）
 
 **示例：**
-- `/fomo:render -i abc123 -o ./output/myvideo.mp4`
+- `/creator:render -i abc123 -o ./output/myvideo.mp4`
 
 ---
 
-### /fomo:list
+### /creator:list
 
 列出所有视频项目。
 
 **示例：**
-- `/fomo:list`
+- `/creator:list`
 
 ---
 
-### /fomo:delete
+### /creator:delete
 
 删除视频项目。
 
@@ -513,11 +513,11 @@ ext_call({
 - `-i, --id <value>`：视频ID（必填）
 
 **示例：**
-- `/fomo:delete -i abc123`
+- `/creator:delete -i abc123`
 
 ---
 
-### /fomo:downloadVideo
+### /creator:downloadVideo
 
 下载百度视频到本地。
 
@@ -526,11 +526,11 @@ ext_call({
 - `-o, --output <value>`：输出路径（默认：./downloads/video.mp4）
 
 **示例：**
-- `/fomo:downloadVideo -m 8220218958312572554 -o ./downloads/video.mp4`
+- `/creator:downloadVideo -m 8220218958312572554 -o ./downloads/video.mp4`
 
 ---
 
-### /fomo:addElement
+### /creator:addElement
 
 通用添加元素（支持所有类型）。
 
@@ -541,8 +541,8 @@ ext_call({
 - `-j, --json <value>`：元素配置JSON字符串
 
 **示例：**
-- `/fomo:addElement -i abc123 -t subtitle -j "{\"text\":\"字幕内容\",\"tts\":true,\"position\":\"bottom\"}"`
-- `/fomo:addElement -i abc123 -n 1 -t rect -j "{\"x\":\"50%\",\"y\":\"50%\",\"width\":200,\"height\":100,\"fill\":\"#ff6b6b\"}"`
+- `/creator:addElement -i abc123 -t subtitle -j "{\"text\":\"字幕内容\",\"tts\":true,\"position\":\"bottom\"}"`
+- `/creator:addElement -i abc123 -n 1 -t rect -j "{\"x\":\"50%\",\"y\":\"50%\",\"width\":200,\"height\":100,\"fill\":\"#ff6b6b\"}"`
 
 ---
 
@@ -708,46 +708,46 @@ const creator = new Creator({
   }
 });
 // 或通过命令设置
-/fomo:setTransition -i abc123 -t true -a true
+/creator:setTransition -i abc123 -t true -a true
 ```
 
 ## 完整示例
 
 ```js
 // 1. 创建视频项目
-/fomo:creator -r 16:9 -t true -v female-tianmei
+/creator:creator -r 16:9 -t true -v female-tianmei
 
 // 2. 添加片头
-/fomo:addCover -i abc123 -t "视频标题" -s "副标题" -d 3
+/creator:addCover -i abc123 -t "视频标题" -s "副标题" -d 3
 
 // 3. 添加内容页（第1页）
-/fomo:addSlide -i abc123 -d 8 -b #1a1a2e
+/creator:addSlide -i abc123 -d 8 -b #1a1a2e
 
 // 4. 添加文本（第1页）
-/fomo:addText -i abc123 -n 1 -t "第一页标题" -x 50% -y 35% -s 72
+/creator:addText -i abc123 -n 1 -t "第一页标题" -x 50% -y 35% -s 72
 
 // 5. 添加字幕（第1页，TTS）
-/fomo:addSubtitle -i abc123 -n 1 -t "这是自动朗读的字幕内容" -p bottom
+/creator:addSubtitle -i abc123 -n 1 -t "这是自动朗读的字幕内容" -p bottom
 
 // 6. 添加图片（第1页）
-/fomo:addImage -i abc123 -n 1 -s ./demo.jpg -w 80%
+/creator:addImage -i abc123 -n 1 -s ./demo.jpg -w 80%
 
 // 7. 添加更多内容页（第2页）
-/fomo:addSlide -i abc123 -d 6
-/fomo:addText -i abc123 -n 2 -t "第二页内容" -s 48
-/fomo:addSubtitle -i abc123 -n 2 -t "第二页字幕内容"
+/creator:addSlide -i abc123 -d 6
+/creator:addText -i abc123 -n 2 -t "第二页内容" -s 48
+/creator:addSubtitle -i abc123 -n 2 -t "第二页字幕内容"
 
 // 8. 添加片尾
-/fomo:addFooter -i abc123 -t "谢谢观看" -d 3
+/creator:addFooter -i abc123 -t "谢谢观看" -d 3
 
 // 9. 设置背景音乐
-/fomo:setBgm -i abc123 -s ./bgm.mp3 -v 60
+/creator:setBgm -i abc123 -s ./bgm.mp3 -v 60
 
 // 10. 查看状态
-/fomo:status -i abc123
+/creator:status -i abc123
 
 // 11. 渲染视频
-/fomo:render -i abc123 -o ./output/myvideo.mp4
+/creator:render -i abc123 -o ./output/myvideo.mp4
 ```
 
 ## slide 序号说明
@@ -759,24 +759,24 @@ const creator = new Creator({
 **示例流程：**
 ```bash
 # 创建3个slide
-/fomo:addSlide -i abc123  # slide 1
-/fomo:addSlide -i abc123  # slide 2  
-/fomo:addSlide -i abc123  # slide 3 (最后)
+/creator:addSlide -i abc123  # slide 1
+/creator:addSlide -i abc123  # slide 2  
+/creator:addSlide -i abc123  # slide 3 (最后)
 
 // 向第1页添加图片
-/fomo:addImage -i abc123 -n 1 -s ./cover.jpg
+/creator:addImage -i abc123 -n 1 -s ./cover.jpg
 
 // 向第2页添加字幕
-/fomo:addSubtitle -i abc123 -n 2 -t "第二页字幕"
+/creator:addSubtitle -i abc123 -n 2 -t "第二页字幕"
 
 // 向最后一页（第3页）添加视频
-/fomo:addVideo -i abc123 -s ./bg.mp4
+/creator:addVideo -i abc123 -s ./bg.mp4
 ```
 
 ## 注意事项
 
 1. TTS 需要 MiniMax API Key，可通过环境变量 `MINIMAX_API_KEY` 设置
-2. 百度视频素材需要先设置 Cookie：/fomo:setCookie
+2. 百度视频素材需要先设置 Cookie：/creator:setCookie
 3. 视频素材需要完整下载后才能渲染
 4. 输出目录需要可写权限
 5. 默认分辨率：16:9 (1920x1080)、9:16 (1080x1920)、1:1 (1600x1600)
