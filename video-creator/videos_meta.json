@@ -1,10 +1,10 @@
 {
-  "yrnm21yv": {
-    "id": "yrnm21yv",
-    "createdAt": 1781840837177,
+  "v9dg0lk4": {
+    "id": "v9dg0lk4",
+    "createdAt": 1782383896636,
     "ttsConfig": {
       "enabled": true,
-      "voice": "female-shaonv-jingpin",
+      "voice": "Chinese (Mandarin)_News_Anchor",
       "rate": 0,
       "volume": 100,
       "model": "speech-2.8-hd",

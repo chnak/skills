@@ -217,7 +217,7 @@ module.exports = [
 				enabled: false,      // 全局是否启用 TTS
 				voice: 'Chinese (Mandarin)_News_Anchor', // 语音 ID
 				rate: 0,             // 语速，-50 ~ +100（映射到 MiniMax 0.5x ~ 2.0x）
-				volume: 100,         // 音量，0 ~ 100
+				volume: 100,         // 音量，0 ~ 1
 				model: 'speech-2.8-hd'
 			},
 			randomTransition: {    // 随机转场/动画配置
@@ -264,7 +264,7 @@ module.exports = [
   },
   {
     name: 'addCover',
-    description: '添加片头',
+    description: '添加片头,不支持添加元素',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-t, --title <value>', description: '主标题', defaultValue: '' },
@@ -294,12 +294,12 @@ module.exports = [
 		coverOptions.subtitleStyle.fontPath=FONTS[args.font]||FONTS['微软雅黑粗体']
         
         // 如果有图片配置，添加图片
-        if (args.image) {
-          coverOptions.image = {
-            src: args.image,
-            fit: args.imgFit || 'cover',
-          };
-        }
+        // if (args.image) {
+          // coverOptions.image = {
+            // src: args.image,
+            // fit: args.imgFit || 'cover',
+          // };
+        // }
         
         creator.addCover(coverOptions);
         return `✅ 片头已添加：${args.title || '(无标题)'}`;
@@ -336,7 +336,7 @@ module.exports = [
   },
   {
     name: 'addFooter',
-    description: '添加片尾',
+    description: '添加片尾,不支持添加元素',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-t, --title <value>', description: '主标题', defaultValue: '' },
@@ -346,10 +346,6 @@ module.exports = [
 	  { flags: '-x, --transition <value>', description: '转场效果', defaultValue: 'CrazyParametricFun' },
 	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑粗体）', defaultValue: '微软雅黑粗体' },
 	  { flags: '--image <value>', description: '片尾图片路径或URL', defaultValue: null },
-	  { flags: '--imgX <value>', description: '图片X位置（默认：50%）', defaultValue: '50%' },
-	  { flags: '--imgY <value>', description: '图片Y位置（默认：50%）', defaultValue: '50%' },
-	  { flags: '--imgW <value>', description: '图片宽度（默认：100%）', defaultValue: '100%' },
-	  { flags: '--imgH <value>', description: '图片高度（默认：100%）', defaultValue: '100%' },
 	  { flags: '--imgFit <value>', description: '图片填充模式（cover/contain/fill，默认cover）', defaultValue: 'cover' },
     ],
     execute: async (args, ctx) => {
@@ -398,7 +394,7 @@ module.exports = [
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-s, --fontSize <value>', description: '字体大小（默认：48）', defaultValue: 48 },
 	  { flags: '-c, --color <value>', description: '颜色（默认：#ffffff）', defaultValue: '#ffffff' },
-	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: null },
+	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: "" },
 	  { flags: '-f, --font <value>', description: '字体（默认:微软雅黑）', defaultValue: '微软雅黑' },
     ],
     execute: async (args, ctx) => {
@@ -593,7 +589,7 @@ module.exports = [
 	  { flags: '-w, --width <value>', description: '宽度（默认：100%）', defaultValue: '100%' },
 	  { flags: '-h, --height <value>', description: '高度（默认：100%）', defaultValue: '100%' },
 	  { flags: '-f, --fit <value>', description: '填充（默认：cover,支持cover/contain,fill）', defaultValue: 'cover' },
-	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: null }
+	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: "" }
     ],
     execute: async (args, ctx) => {
       try {
@@ -776,7 +772,7 @@ module.exports = [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-v, --voice <value>', description: '语音ID', defaultValue: null },
 	  { flags: '-r, --rate <value>', description: '语速-50~100（默认：0）', defaultValue: 0 },
-	  { flags: '-l, --volume <value>', description: '音量0-100（默认：100）', defaultValue: 100 },
+	  { flags: '-l, --volume <value>', description: '音量0-1（默认：1）', defaultValue: 1 },
 	  { flags: '-e, --enable <value>', description: '是否启用tts（true/false）', defaultValue: 'true' }
     ],
     execute: async (args, ctx) => {
@@ -784,7 +780,7 @@ module.exports = [
         const creator = getCreator(args.id);
         if (args.voice) creator.ttsConfig.voice = 'Chinese (Mandarin)_News_Anchor';
         if (args.rate !== undefined) creator.ttsConfig.rate = parseInt(args.rate);
-        if (args.volume !== undefined) creator.ttsConfig.volume = parseInt(args.volume);
+        //if (args.volume !== undefined) creator.ttsConfig.volume = parseInt(args.volume);
         if (args.enable !== undefined) creator.ttsConfig.enabled = args.enable === 'true';
         return `✅ TTS配置已更新：voice=${creator.ttsConfig.voice}, rate=${creator.ttsConfig.rate}, volume=${creator.ttsConfig.volume}`;
       } catch (err) {
