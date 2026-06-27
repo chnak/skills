@@ -405,6 +405,52 @@ ext_call({
 
 ---
 
+### /creator:addEChart
+
+添加 ECharts 图表元素到指定 slide。
+
+**参数：**
+- `-i, --id <value>`：视频ID（必填）
+- `-j, --option <value>`：ECharts 配置 JSON 字符串（必填）
+- `-n, --slideIndex <value>`：目标slide序号（1-based，默认最后一个）
+- `-x, --x <value>`：X位置（默认：50%）
+- `-y, --y <value>`：Y位置（默认：55%）
+- `-w, --width <value>`：宽度（默认：85%）
+- `-h, --height <value>`：高度（默认：75%）
+- `-r, --renderer <value>`：渲染器（canvas/svg，默认：canvas）
+- `-d, --duration <value>`：时长（秒）
+
+**示例：**
+- `/creator:addEChart -i abc123 -j "{\"series\":[{\"type\":\"bar\",\"data\":[10,20,30]}],\"xAxis\":{\"type\":\"category\",\"data\":[\"A\",\"B\",\"C\"]},\"yAxis\":{\"type\":\"value\"}}"`
+
+> **注意：** `option` 是标准的 ECharts option 对象，支持所有 ECharts 图表类型（bar/line/pie/scatter 等）。JSON 字符串中的引号需要转义。
+
+---
+
+### /creator:addEChartSlide
+
+一步创建带标题和 ECharts 图表的内容页。
+
+**参数：**
+- `-i, --id <value>`：视频ID（必填）
+- `-j, --option <value>`：ECharts 配置 JSON 字符串（必填）
+- `-t, --title <value>`：图表标题文字
+- `-d, --duration <value>`：时长（秒，默认：8）
+- `-b, --background <value>`：背景色（默认：#1a1a2e）
+- `-x, --transition <value>`：转场效果
+- `-c, --titleColor <value>`：标题颜色（默认：#ffe66d）
+- `-s, --titleSize <value>`：标题字体大小（默认：48）
+- `-p, --titlePosition <value>`：标题Y位置（默认：8%）
+- `-w, --chartWidth <value>`：图表宽度（默认：85%）
+- `-h, --chartHeight <value>`：图表高度（默认：75%）
+- `--chartY <value>`：图表Y位置（默认：55%）
+- `-r, --renderer <value>`：渲染器（canvas/svg，默认：canvas）
+
+**示例：**
+- `/creator:addEChartSlide -i abc123 -t "月度销售额" -j "{\"series\":[{\"type\":\"bar\",\"data\":[120,200,150,80,270,310],\"itemStyle\":{\"color\":\"#ff6b6b\",\"borderRadius\":[6,6,0,0]}}],\"xAxis\":{\"type\":\"category\",\"data\":[\"1月\",\"2月\",\"3月\",\"4月\",\"5月\",\"6月\"],\"axisLabel\":{\"color\":\"#ccc\"}},\"yAxis\":{\"type\":\"value\",\"axisLabel\":{\"color\":\"#ccc\"}}}"`
+
+---
+
 ### /creator:setBgm
 
 设置背景音乐。
@@ -586,6 +632,7 @@ creator.addFooter({
 | `video` | 视频 | `src`, `fit`, `mute`, `loop` |
 | `rect` | 矩形 | `fill`, `width`, `height`, `radius` |
 | `circle` | 圆形 | `fill`, `radius` |
+| `echarts` | ECharts 图表 | `option`（完整 ECharts option），`renderer`（canvas/svg） |
 
 ### 元素通用属性
 

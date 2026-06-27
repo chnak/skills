@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd D:/Date/20260525/video/skills/video-creator && node -c index.js && echo \"Syntax OK\")"
+    ]
+  }
+}

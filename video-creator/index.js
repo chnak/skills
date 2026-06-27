@@ -319,13 +319,13 @@ module.exports = [
     ],
     execute: async (args, ctx) => {
       try {
-		args.transition=TRANSITIONSOBJECT[args.transition]||undefined
+		args.transition=TRANSITIONSOBJECT[args.transition]||'fade'
         const creator = getCreator(args.id);
         const slideIndex = creator.slides.length + 1; // 添加前的数量+1 = 新slide的序号
         creator.addSlide({
           duration: parseInt(args.duration) || 5,
           background: args.background || '#1a1a2e',
-          transition: args.transition || undefined,
+          transition: args.transition,
           elements: []
         });
         return `✅ 内容页已添加（第${slideIndex}页，可用 -n ${slideIndex} 指定）`;
@@ -588,7 +588,7 @@ module.exports = [
 	  { flags: '-y, --y <value>', description: 'Y位置（默认：50%）', defaultValue: '50%' },
 	  { flags: '-w, --width <value>', description: '宽度（默认：100%）', defaultValue: '100%' },
 	  { flags: '-h, --height <value>', description: '高度（默认：100%）', defaultValue: '100%' },
-	  { flags: '-f, --fit <value>', description: '填充（默认：cover,支持cover/contain,fill）', defaultValue: 'cover' },
+	  { flags: '-f, --fit <value>', description: '填充（默认：cover,支持cover/contain,fill）', defaultValue: 'fill' },
 	  { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: "" }
     ],
     execute: async (args, ctx) => {
@@ -610,7 +610,7 @@ module.exports = [
           y: args.y || '50%',
           width: args.width || '100%',
           height: args.height || '100%',
-		  fit: args.fit||'cover', 
+		  fit: 'fill', 
 		  zoomDirection:'auto',
 		  zoomAmount: 0.1,
           duration: args.duration ? parseInt(args.duration) : undefined
@@ -742,6 +742,135 @@ module.exports = [
         return `✅ 圆形已添加：${args.color}`;
       } catch (err) {
         return '❌ 添加圆形失败：' + err.message;
+      }
+    }
+  },
+  {
+    name: 'addEChart',
+    description: '添加ECharts图表元素到指定slide（option通过JSON字符串传入）',
+    options: [
+      { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
+      { flags: '-j, --option <value>', description: 'ECharts配置JSON字符串（必填）', required: true },
+      { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 1 },
+      { flags: '-x, --x <value>', description: 'X位置（默认：50%）', defaultValue: '50%' },
+      { flags: '-y, --y <value>', description: 'Y位置（默认：55%）', defaultValue: '55%' },
+      { flags: '-w, --width <value>', description: '宽度（默认：85%）', defaultValue: '85%' },
+      { flags: '-h, --height <value>', description: '高度（默认：75%）', defaultValue: '75%' },
+      { flags: '-r, --renderer <value>', description: '渲染器（canvas/svg，默认：canvas）', defaultValue: 'canvas' },
+      { flags: '-d, --duration <value>', description: '时长（秒）', defaultValue: null },
+    ],
+    execute: async (args, ctx) => {
+      try {
+        const creator = getCreator(args.id);
+        if (creator.slides.length === 0) {
+          throw new Error('请先添加slide');
+        }
+        const slideIndex = parseInt(args.slideIndex);
+        const targetIndex = slideIndex - 1;
+        if (targetIndex < 0 || targetIndex >= creator.slides.length) {
+          throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
+        }
+
+        let option;
+        try {
+          option = JSON.parse(args.option);
+        } catch (e) {
+          throw new Error('ECharts option 不是有效的JSON字符串');
+        }
+
+        const slide = creator.slides[targetIndex];
+        slide.elements.push({
+          type: 'echarts',
+          x: args.x || '50%',
+          y: args.y || '55%',
+          width: args.width || '85%',
+          height: args.height || '75%',
+          renderer: args.renderer || 'canvas',
+          option,
+          duration: args.duration ? parseInt(args.duration) : undefined,
+          animations: ['fadeIn'],
+          startTime: 0,
+        });
+        return `✅ ECharts图表已添加：${option.title?.text || option.series?.[0]?.type || '未命名图表'}`;
+      } catch (err) {
+        return '❌ 添加ECharts图表失败：' + err.message;
+      }
+    }
+  },
+  {
+    name: 'addEChartSlide',
+    description: '一步创建带标题和ECharts图表的内容页',
+    options: [
+      { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
+      { flags: '-j, --option <value>', description: 'ECharts配置JSON字符串（必填）', required: true },
+      { flags: '-t, --title <value>', description: '图表标题', defaultValue: '' },
+      { flags: '-d, --duration <value>', description: '时长（秒，默认：8）', defaultValue: 8 },
+      { flags: '-b, --background <value>', description: '背景色（默认：#1a1a2e）', defaultValue: '#1a1a2e' },
+      { flags: '-x, --transition <value>', description: '转场效果', defaultValue: undefined },
+      { flags: '-c, --titleColor <value>', description: '标题颜色（默认：#ffe66d）', defaultValue: '#ffe66d' },
+      { flags: '-s, --titleSize <value>', description: '标题字体大小（默认：48）', defaultValue: 48 },
+      { flags: '-p, --titlePosition <value>', description: '标题Y位置（默认：8%）', defaultValue: '8%' },
+      { flags: '-w, --chartWidth <value>', description: '图表宽度（默认：85%）', defaultValue: '85%' },
+      { flags: '-h, --chartHeight <value>', description: '图表高度（默认：75%）', defaultValue: '75%' },
+      { flags: '--chartY <value>', description: '图表Y位置（默认：55%）', defaultValue: '55%' },
+      { flags: '-r, --renderer <value>', description: '渲染器（canvas/svg，默认：canvas）', defaultValue: 'canvas' },
+    ],
+    execute: async (args, ctx) => {
+      try {
+        const creator = getCreator(args.id);
+
+        let option;
+        try {
+          option = JSON.parse(args.option);
+        } catch (e) {
+          throw new Error('ECharts option 不是有效的JSON字符串');
+        }
+
+        const slideIndex = creator.slides.length + 1;
+
+        const elements = [];
+
+        // 如果有标题，添加标题文本元素
+        if (args.title) {
+          elements.push({
+            type: 'text',
+            text: args.title,
+            x: '50%',
+            y: args.titlePosition || '8%',
+            fontSize: parseInt(args.titleSize) || 48,
+            color: args.titleColor || '#ffe66d',
+            anchor: [0.5, 0.5],
+            textAlign: 'center',
+            startTime: 0,
+            animations: ['fadeIn'],
+          });
+        }
+
+        // 添加ECharts图表元素
+        elements.push({
+          type: 'echarts',
+          x: '50%',
+          y: args.chartY || '55%',
+          width: args.chartWidth || '85%',
+          height: args.chartHeight || '75%',
+          renderer: args.renderer || 'canvas',
+          option,
+          startTime: 0,
+          animations: ['fadeIn'],
+        });
+
+        args.transition = TRANSITIONSOBJECT[args.transition] || 'fade';
+        creator.addSlide({
+          duration: parseInt(args.duration) || 8,
+          background: args.background || '#1a1a2e',
+          transition: args.transition,
+          elements,
+        });
+
+        const chartType = option.series?.[0]?.type || '未命名';
+        return `✅ ECharts图表页已添加（第${slideIndex}页，类型：${chartType}）${args.title ? '，标题：' + args.title : ''}`;
+      } catch (err) {
+        return '❌ 添加ECharts图表页失败：' + err.message;
       }
     }
   },

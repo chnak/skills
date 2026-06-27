@@ -1,10 +1,10 @@
 {
-  "v9dg0lk4": {
-    "id": "v9dg0lk4",
-    "createdAt": 1782383896636,
+  "qnq6jjj6": {
+    "id": "qnq6jjj6",
+    "createdAt": 1782546348059,
     "ttsConfig": {
       "enabled": true,
-      "voice": "Chinese (Mandarin)_News_Anchor",
+      "voice": "female-shaonv-jingpin",
       "rate": 0,
       "volume": 100,
       "model": "speech-2.8-hd",
