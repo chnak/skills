@@ -746,6 +746,119 @@ module.exports = [
     }
   },
   {
+    name: 'addHtml',
+    description: '添加HTML元素到指定slide（通过Takumi渲染器，支持任意HTML/CSS、Tailwind、Emoji彩色、CSS动画）',
+    options: [
+      { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
+      { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 1 },
+      { flags: '--html <value>', description: 'HTML字符串内容（与--htmlFile二选一）', defaultValue: '' },
+      { flags: '--htmlFile <value>', description: '从本地文件读取HTML内容（与--html二选一）', defaultValue: '' },
+      { flags: '-x, --x <value>', description: 'X位置（默认：50%，支持px和%）', defaultValue: '50%' },
+      { flags: '-y, --y <value>', description: 'Y位置（默认：50%，支持px和%）', defaultValue: '50%' },
+      { flags: '-w, --width <value>', description: '宽度（默认：800，支持px和%）', defaultValue: 800 },
+      { flags: '-e, --height <value>', description: '高度（默认：600，支持px和%）', defaultValue: 600 },
+      { flags: '-a, --anchor <value>', description: '锚点JSON数组，例如 [0.5,0.5]（默认中心）', defaultValue: '[0.5,0.5]' },
+      { flags: '-d, --duration <value>', description: '显示时长（秒）', defaultValue: null },
+      { flags: '-s, --startTime <value>', description: '开始时间（秒，默认0）', defaultValue: 0 },
+      { flags: '-t, --tailwind <value>', description: '是否启用Tailwind CSS（true/false，默认false）', defaultValue: 'false' },
+      { flags: '-m, --emoji <value>', description: 'Emoji渲染模式（true/false/twemoji，默认twemoji）', defaultValue: 'twemoji' },
+      { flags: '-k, --keyframes <value>', description: 'CSS动画keyframes JSON字符串（Bare/Rich格式）', defaultValue: '' },
+      { flags: '-A, --animations <value>', description: '入场/出场动画数组JSON字符串，例如 ["fadeIn"]', defaultValue: '' },
+    ],
+    execute: async (args, ctx) => {
+      try {
+        const creator = getCreator(args.id);
+        if (creator.slides.length === 0) {
+          throw new Error('请先添加slide');
+        }
+        const slideIndex = parseInt(args.slideIndex);
+        const targetIndex = slideIndex - 1;
+        if (targetIndex < 0 || targetIndex >= creator.slides.length) {
+          throw new Error(`slide序号无效，有效范围：1-${creator.slides.length}`);
+        }
+
+        // 获取 HTML 内容：--html 字符串 或 --htmlFile 文件
+        let html = args.html || '';
+        if (args.htmlFile) {
+          if (!fs.existsSync(args.htmlFile)) {
+            throw new Error(`HTML文件不存在: ${args.htmlFile}`);
+          }
+          html = fs.readFileSync(args.htmlFile, 'utf-8');
+        }
+        if (!html) {
+          throw new Error('请提供HTML内容（--html 字符串 或 --htmlFile 文件路径）');
+        }
+
+        // 解析 anchor
+        let anchor = [0.5, 0.5];
+        if (args.anchor) {
+          try {
+            const parsed = JSON.parse(args.anchor);
+            if (Array.isArray(parsed) && parsed.length === 2) {
+              anchor = parsed;
+            }
+          } catch (e) {
+            throw new Error('anchor 不是有效的JSON数组，例如: "[0.5,0.5]"');
+          }
+        }
+
+        // 解析 width/height：数字或字符串（'100%'）
+        const parseSize = (v, fallback) => {
+          if (v === undefined || v === null || v === '') return fallback;
+          const n = parseInt(v);
+          return isNaN(n) || String(n) !== String(v).trim() ? v : n;
+        };
+
+        // 解析 keyframes（可选）
+        let keyframes;
+        if (args.keyframes) {
+          try {
+            keyframes = JSON.parse(args.keyframes);
+          } catch (e) {
+            throw new Error('keyframes 不是有效的JSON字符串');
+          }
+        }
+
+        // 解析 animations（可选）
+        let animations;
+        if (args.animations) {
+          try {
+            animations = JSON.parse(args.animations);
+            if (!Array.isArray(animations)) {
+              throw new Error('animations 必须是JSON数组');
+            }
+          } catch (e) {
+            throw new Error('animations 不是有效的JSON数组，例如 \'["fadeIn"]\'');
+          }
+        }
+
+        const slide = creator.slides[targetIndex];
+        const element = {
+          type: 'html',
+          x: args.x || '50%',
+          y: args.y || '50%',
+          width: parseSize(args.width, 800),
+          height: parseSize(args.e, 600),
+          anchor,
+          html,
+          startTime: parseFloat(args.startTime) || 0,
+          tailwind: args.tailwind === 'true',
+          emoji: args.m === 'false' ? false : args.m,
+        };
+
+        if (args.duration) element.duration = parseInt(args.duration);
+        if (keyframes) element.keyframes = keyframes;
+        if (animations) element.animations = animations;
+
+        slide.elements.push(element);
+        const preview = html.length > 40 ? html.substring(0, 40) + '...' : html.replace(/\s+/g, ' ');
+        return `✅ HTML元素已添加（${html.length}字符）：${preview}`;
+      } catch (err) {
+        return '❌ 添加HTML元素失败：' + err.message;
+      }
+    }
+  },
+  {
     name: 'addEChart',
     description: '添加ECharts图表元素到指定slide（option通过JSON字符串传入）',
     options: [
@@ -794,83 +907,6 @@ module.exports = [
         return `✅ ECharts图表已添加：${option.title?.text || option.series?.[0]?.type || '未命名图表'}`;
       } catch (err) {
         return '❌ 添加ECharts图表失败：' + err.message;
-      }
-    }
-  },
-  {
-    name: 'addEChartSlide',
-    description: '一步创建带标题和ECharts图表的内容页',
-    options: [
-      { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
-      { flags: '-j, --option <value>', description: 'ECharts配置JSON字符串（必填）', required: true },
-      { flags: '-t, --title <value>', description: '图表标题', defaultValue: '' },
-      { flags: '-d, --duration <value>', description: '时长（秒，默认：8）', defaultValue: 8 },
-      { flags: '-b, --background <value>', description: '背景色（默认：#1a1a2e）', defaultValue: '#1a1a2e' },
-      { flags: '-x, --transition <value>', description: '转场效果', defaultValue: undefined },
-      { flags: '-c, --titleColor <value>', description: '标题颜色（默认：#ffe66d）', defaultValue: '#ffe66d' },
-      { flags: '-s, --titleSize <value>', description: '标题字体大小（默认：48）', defaultValue: 48 },
-      { flags: '-p, --titlePosition <value>', description: '标题Y位置（默认：8%）', defaultValue: '8%' },
-      { flags: '-w, --chartWidth <value>', description: '图表宽度（默认：85%）', defaultValue: '85%' },
-      { flags: '-h, --chartHeight <value>', description: '图表高度（默认：75%）', defaultValue: '75%' },
-      { flags: '--chartY <value>', description: '图表Y位置（默认：55%）', defaultValue: '55%' },
-      { flags: '-r, --renderer <value>', description: '渲染器（canvas/svg，默认：canvas）', defaultValue: 'canvas' },
-    ],
-    execute: async (args, ctx) => {
-      try {
-        const creator = getCreator(args.id);
-
-        let option;
-        try {
-          option = JSON.parse(args.option);
-        } catch (e) {
-          throw new Error('ECharts option 不是有效的JSON字符串');
-        }
-
-        const slideIndex = creator.slides.length + 1;
-
-        const elements = [];
-
-        // 如果有标题，添加标题文本元素
-        if (args.title) {
-          elements.push({
-            type: 'text',
-            text: args.title,
-            x: '50%',
-            y: args.titlePosition || '8%',
-            fontSize: parseInt(args.titleSize) || 48,
-            color: args.titleColor || '#ffe66d',
-            anchor: [0.5, 0.5],
-            textAlign: 'center',
-            startTime: 0,
-            animations: ['fadeIn'],
-          });
-        }
-
-        // 添加ECharts图表元素
-        elements.push({
-          type: 'echarts',
-          x: '50%',
-          y: args.chartY || '55%',
-          width: args.chartWidth || '85%',
-          height: args.chartHeight || '75%',
-          renderer: args.renderer || 'canvas',
-          option,
-          startTime: 0,
-          animations: ['fadeIn'],
-        });
-
-        args.transition = TRANSITIONSOBJECT[args.transition] || 'fade';
-        creator.addSlide({
-          duration: parseInt(args.duration) || 8,
-          background: args.background || '#1a1a2e',
-          transition: args.transition,
-          elements,
-        });
-
-        const chartType = option.series?.[0]?.type || '未命名';
-        return `✅ ECharts图表页已添加（第${slideIndex}页，类型：${chartType}）${args.title ? '，标题：' + args.title : ''}`;
-      } catch (err) {
-        return '❌ 添加ECharts图表页失败：' + err.message;
       }
     }
   },
@@ -1029,10 +1065,10 @@ module.exports = [
   },
   {
     name: 'addElement',
-    description: '通用添加元素（支持所有类型）',
+    description: '通用添加元素（支持所有类型：text/image/video/subtitle/rect/circle/echarts/html）',
 	options: [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
-	  { flags: '-t, --type <value>', description: '元素类型（必填）：text/image/video/subtitle/rect/circle', required: true },
+	  { flags: '-t, --type <value>', description: '元素类型（必填）：text/image/video/subtitle/rect/circle/echarts/html', required: true },
 	  { flags: '-n, --slideIndex <value>', description: '目标slide序号（1-based，默认最后一个）', defaultValue: 1 },
 	  { flags: '-j, --json <value>', description: '元素配置JSON字符串', defaultValue: '{}' }
     ],

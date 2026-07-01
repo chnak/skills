@@ -405,6 +405,50 @@ ext_call({
 
 ---
 
+### /creator:addHtml
+
+添加 HTML 元素到指定 slide（基于 Takumi 渲染器，支持任意 HTML/CSS、Tailwind、Emoji 彩色、CSS 动画）。
+
+**参数：**
+- `-i, --id <value>`：视频ID（必填）
+- `-n, --slideIndex <value>`：目标slide序号（1-based，默认最后一个）
+- `--html <value>`：HTML 字符串内容（与 `--htmlFile` 二选一）
+- `--htmlFile <value>`：从本地文件读取 HTML 内容（与 `--html` 二选一，适合长内容）
+- `-x, --x <value>`：X 位置（默认：50%，支持 px 和 `%`）
+- `-y, --y <value>`：Y 位置（默认：50%，支持 px 和 `%`）
+- `-w, --width <value>`：宽度（默认：800，支持 px 和 `%`）
+- `-e, --height <value>`：高度（默认：600，支持 px 和 `%`）
+- `-a, --anchor <value>`：锚点 JSON 数组，例如 `[0.5,0.5]`（默认中心）
+- `-d, --duration <value>`：显示时长（秒）
+- `-s, --startTime <value>`：开始时间（秒，默认 0）
+- `-t, --tailwind <value>`：是否启用 Tailwind CSS（true/false，默认 false）
+- `-m, --emoji <value>`：Emoji 渲染模式（true/false/twemoji，默认 twemoji）
+- `-k, --keyframes <value>`：CSS 动画 keyframes JSON 字符串（Bare/Rich 格式）
+- `-A, --animations <value>`：入场/出场动画数组 JSON 字符串，例如 `["fadeIn"]`
+
+**示例（基础）：**
+- `/creator:addHtml -i abc123 --html '<div style="font-size:48px;color:#fff;">任意 HTML</div>'`
+
+**示例（全屏背景）：**
+- `/creator:addHtml -i abc123 --html '<div style="background:#312e81;color:#fff;font-size:72px;display:flex;align-items:center;justify-content:center;height:100vh;">全屏 HTML</div>' -x 0 -y 0 -w 100% -e 100%`
+
+**示例（Tailwind + Emoji + 动画）：**
+- `/creator:addHtml -i abc123 --html '<div class="flex flex-col items-center justify-center h-full gap-8"><h1 class="text-6xl font-black text-white">🚀 视频创作</h1><div class="text-5xl">⚡ 快速 · 🎨 灵活</div></div>' -t true -A '["fadeIn"]'`
+
+**示例（从文件读取）：**
+- `/creator:addHtml -i abc123 --htmlFile ./templates/card.html -w 1000 -e 500`
+
+**示例（CSS 关键帧动画）：**
+- `/creator:addHtml -i abc123 --html '<div class="badge" style="font-size:64px;">跳动徽章</div>' -k '{"badge":{"0%":{"transform":"translateY(0)"},"50%":{"transform":"translateY(-30px)"},"100%":{"transform":"translateY(0)"}}}'`
+
+> **注意事项：**
+> - `--html` 内容如含单引号请用双引号包裹整段，反之亦然
+> - 长 HTML 推荐用 `--htmlFile` 从文件读取，避开命令行长度限制
+> - CSS 动画与时间轴自动同步（驱动变量为 `timeMs`）
+> - 默认自动注入跨平台 CJK 字体栈，未声明 `font-family` 也可正常显示中文
+
+---
+
 ### /creator:addEChart
 
 添加 ECharts 图表元素到指定 slide。
@@ -424,30 +468,6 @@ ext_call({
 - `/creator:addEChart -i abc123 -j "{\"series\":[{\"type\":\"bar\",\"data\":[10,20,30]}],\"xAxis\":{\"type\":\"category\",\"data\":[\"A\",\"B\",\"C\"]},\"yAxis\":{\"type\":\"value\"}}"`
 
 > **注意：** `option` 是标准的 ECharts option 对象，支持所有 ECharts 图表类型（bar/line/pie/scatter 等）。JSON 字符串中的引号需要转义。
-
----
-
-### /creator:addEChartSlide
-
-一步创建带标题和 ECharts 图表的内容页。
-
-**参数：**
-- `-i, --id <value>`：视频ID（必填）
-- `-j, --option <value>`：ECharts 配置 JSON 字符串（必填）
-- `-t, --title <value>`：图表标题文字
-- `-d, --duration <value>`：时长（秒，默认：8）
-- `-b, --background <value>`：背景色（默认：#1a1a2e）
-- `-x, --transition <value>`：转场效果
-- `-c, --titleColor <value>`：标题颜色（默认：#ffe66d）
-- `-s, --titleSize <value>`：标题字体大小（默认：48）
-- `-p, --titlePosition <value>`：标题Y位置（默认：8%）
-- `-w, --chartWidth <value>`：图表宽度（默认：85%）
-- `-h, --chartHeight <value>`：图表高度（默认：75%）
-- `--chartY <value>`：图表Y位置（默认：55%）
-- `-r, --renderer <value>`：渲染器（canvas/svg，默认：canvas）
-
-**示例：**
-- `/creator:addEChartSlide -i abc123 -t "月度销售额" -j "{\"series\":[{\"type\":\"bar\",\"data\":[120,200,150,80,270,310],\"itemStyle\":{\"color\":\"#ff6b6b\",\"borderRadius\":[6,6,0,0]}}],\"xAxis\":{\"type\":\"category\",\"data\":[\"1月\",\"2月\",\"3月\",\"4月\",\"5月\",\"6月\"],\"axisLabel\":{\"color\":\"#ccc\"}},\"yAxis\":{\"type\":\"value\",\"axisLabel\":{\"color\":\"#ccc\"}}}"`
 
 ---
 
@@ -633,6 +653,7 @@ creator.addFooter({
 | `rect` | 矩形 | `fill`, `width`, `height`, `radius` |
 | `circle` | 圆形 | `fill`, `radius` |
 | `echarts` | ECharts 图表 | `option`（完整 ECharts option），`renderer`（canvas/svg） |
+| `html` | HTML/CSS 自由布局 | `html`（HTML 字符串），`tailwind`、`emoji`、`keyframes`、`animations` |
 
 ### 元素通用属性
 
@@ -680,6 +701,53 @@ creator.addFooter({
   mute: true,          // 静音
   loop: true           // 循环
 }
+```
+
+### HTML 元素配置（Takumi 渲染器）
+
+通过 `type: 'html'` 将任意 HTML/CSS 渲染为视频帧，三大亮点：**自动中文渲染**（注入 CJK 字体栈）、**Emoji 彩色**（自动转 Twemoji SVG）、**Tailwind CSS**（`tailwind: true` 零配置启用）。
+
+```js
+creator.addSlide({
+  elements: [
+    {
+      type: 'html',
+      x: '50%', y: '50%',
+      width: 1000, height: 400,
+      anchor: [0.5, 0.5],
+      tailwind: true,
+      emoji: 'twemoji',
+      keyframes: {
+        '.badge': {
+          '0%':   { transform: 'translateY(0)' },
+          '50%':  { transform: 'translateY(-30px)' },
+          '100%': { transform: 'translateY(0)' }
+        }
+      },
+      html: `
+        <div class="flex flex-col items-center justify-center h-full gap-8">
+          <h1 class="text-6xl font-black text-white">🚀 视频创作</h1>
+          <div class="badge text-5xl">⚡ 快速 · 🎨 灵活 · ✨ 强大</div>
+        </div>
+      `
+    }
+  ]
+});
+```
+
+**CSS 动画四种写法：**
+```js
+// 1. Bare 格式（推荐）
+keyframes: { '.badge': { '0%': {transform:'translateY(0)'}, '100%': {transform:'translateY(-30px)'} } }
+
+// 2. Rich 格式（自定义 timing）
+keyframes: { '.title': { duration: '1.2s', easing: 'ease-out', fill: 'forwards',
+  keyframes: { '0%': {opacity:0}, '100%': {opacity:1} } } }
+
+// 3. 全手控（在 html 里写 <style>@keyframes myBounce {...}</style>）
+
+// 4. Takumi 原生数组（向后兼容）
+keyframes: [{ name: 'spin', keyframes: [...] }]
 ```
 
 ## TTS 字幕
