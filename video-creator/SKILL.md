@@ -207,7 +207,7 @@ ext_call({
 **参数：**
 - `-r, --ratio <value>`：视频比例（16:9/9:16/1:1，默认16:9）
 - `-t, --tts <value>`：是否开启 TTS（true/false，默认true）
-- `-v, --voice <value>`：语音 ID（默认：female-shaonv-jingpin）
+- `-v, --voice <value>`：语音 ID（默认：female-shaonv-jingpin，会校验 ID 是否存在）
 - `-a, --transition <value>`：随机转场（true/false，默认true）
 - `-b, --bgmSrc <value>`：背景音乐路径
 
@@ -216,6 +216,8 @@ ext_call({
 - `/creator:creator -r 9:16 -t false`
 - `/creator:creator -r 16:9 -b ./music.mp3`
 - `/creator:creator -r 16:9 -t true -v 'Chinese (Mandarin)_News_Anchor'`（新闻播报）
+
+> **注意：** `-v` 指定的 voice ID 会通过 `getVoices` 接口校验，非法 ID 会立即报错并提示示例可用 ID。校验结果有 5 分钟缓存。
 
 ---
 
@@ -430,7 +432,7 @@ ext_call({
 - `/creator:addHtml -i abc123 --html '<div style="font-size:48px;color:#fff;">任意 HTML</div>'`
 
 **示例（全屏背景）：**
-- `/creator:addHtml -i abc123 --html '<div style="background:#312e81;color:#fff;font-size:72px;display:flex;align-items:center;justify-content:center;height:100vh;">全屏 HTML</div>' -x 0 -y 0 -w 100% -e 100%`
+- `/creator:addHtml -i abc123 --html '<div style="background:#312e81;color:#fff;font-size:72px;display:flex;align-items:center;justify-content:center;height:100vh;">全屏 HTML</div>' -x 50% -y 50% -w 100% -e 100%`
 
 **示例（Tailwind + Emoji + 动画）：**
 - `/creator:addHtml -i abc123 --html '<div class="flex flex-col items-center justify-center h-full gap-8"><h1 class="text-6xl font-black text-white">🚀 视频创作</h1><div class="text-5xl">⚡ 快速 · 🎨 灵活</div></div>' -t true -A '["fadeIn"]'`
@@ -511,6 +513,8 @@ ext_call({
 - `male-baise` - 男声白蛇
 
 可用 `/creator:getVoices` 查看完整音色列表。
+
+> **注意：** `-v` 指定的 voice ID 会通过 `getVoices` 接口校验，非法 ID 会立即报错并提示示例可用 ID（5 分钟缓存）。
 
 ---
 

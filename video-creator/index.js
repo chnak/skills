@@ -95,6 +95,33 @@ function generateId() {
     return Math.random().toString(36).substring(2, 10);
 }
 
+// 校验 voice ID 是否存在（带缓存，避免重复请求）
+let _voiceCache = null;
+let _voiceCacheTime = 0;
+const VOICE_CACHE_TTL = 5 * 60 * 1000; // 5 分钟
+async function validateVoiceId(voiceId) {
+    if (!voiceId) return null;
+    const now = Date.now();
+    if (!_voiceCache || now - _voiceCacheTime > VOICE_CACHE_TTL) {
+        try {
+            const tempCreator = new Creator({});
+            _voiceCache = await tempCreator.getVoices();
+            _voiceCacheTime = now;
+        } catch (e) {
+            // 网络/服务异常时跳过校验，避免阻塞；让后续渲染报错时再发现
+            return null;
+        }
+    }
+    if (!_voiceCache || _voiceCache.length === 0) return null;
+    const ids = _voiceCache.map(v => v.voiceId || v.name).filter(Boolean);
+    if (!ids.includes(voiceId)) {
+        const sample = ids.slice(0, 5).join(', ');
+        const more = ids.length > 5 ? ` 等 ${ids.length} 个` : '';
+        return `未知的语音 ID: "${voiceId}"。示例可用 ID：${sample}${more}（用 /creator:getVoices 查看完整列表）`;
+    }
+    return null;
+}
+
 // 加载持久化的项目元数据
 function loadMeta() {
     try {
@@ -132,7 +159,7 @@ function getCreator(videoId) {
         if (meta[videoId]) {
             // 创建一个新 Creator，使用之前保存的配置
             creator = new Creator({
-                tts: meta[videoId].ttsConfig || { enabled: true, voice: 'Chinese (Mandarin)_News_Anchor', rate: 0, volume: 100, model: 'speech-2.8-hd' }
+                tts: meta[videoId].ttsConfig || { enabled: true, voice: 'Chinese (Mandarin)_News_Anchor', rate: 0, volume: 1, model: 'speech-2.8-hd' }
             });
             videos_map.set(videoId, creator);
         } else {
@@ -217,7 +244,7 @@ module.exports = [
 				enabled: false,      // 全局是否启用 TTS
 				voice: 'Chinese (Mandarin)_News_Anchor', // 语音 ID
 				rate: 0,             // 语速，-50 ~ +100（映射到 MiniMax 0.5x ~ 2.0x）
-				volume: 100,         // 音量，0 ~ 1
+				volume:1,         // 音量，0 ~ 1
 				model: 'speech-2.8-hd'
 			},
 			randomTransition: {    // 随机转场/动画配置
@@ -241,6 +268,8 @@ module.exports = [
 			options.tts.enabled=false
 		}
 		if(args.voice){
+			const voiceErr = await validateVoiceId(args.voice);
+			if (voiceErr) throw new Error(voiceErr);
 			options.tts.voice=args.voice
 		}
 		if(args.transition){
@@ -249,7 +278,7 @@ module.exports = [
 		if(args.bgmSrc){
 			options.backgroundMusic={
 				src:args.bgmSrc,
-				volume: 0.5,  // 默认音量 0-1 范围
+				volume: 50 / 100,  // 默认音量 0-1 范围
 			}
 		}
 		const creator = new Creator(options)
@@ -837,8 +866,8 @@ module.exports = [
           type: 'html',
           x: args.x || '50%',
           y: args.y || '50%',
-          width: parseSize(args.width, 800),
-          height: parseSize(args.e, 600),
+          width: args.width||'100%',
+          height: args.height||'100%',
           anchor,
           html,
           startTime: parseFloat(args.startTime) || 0,
@@ -937,15 +966,19 @@ module.exports = [
       { flags: '-i, --id <value>', description: '视频ID（必填）', required: true },
 	  { flags: '-v, --voice <value>', description: '语音ID', defaultValue: null },
 	  { flags: '-r, --rate <value>', description: '语速-50~100（默认：0）', defaultValue: 0 },
-	  { flags: '-l, --volume <value>', description: '音量0-1（默认：1）', defaultValue: 1 },
+	  { flags: '-l, --volume <value>', description: '音量0-1（默认：100）', defaultValue: 100 },
 	  { flags: '-e, --enable <value>', description: '是否启用tts（true/false）', defaultValue: 'true' }
     ],
     execute: async (args, ctx) => {
       try {
         const creator = getCreator(args.id);
-        if (args.voice) creator.ttsConfig.voice = 'Chinese (Mandarin)_News_Anchor';
+        if (args.voice) {
+          const voiceErr = await validateVoiceId(args.voice);
+          if (voiceErr) throw new Error(voiceErr);
+          creator.ttsConfig.voice = args.voice;
+        }
         if (args.rate !== undefined) creator.ttsConfig.rate = parseInt(args.rate);
-        //if (args.volume !== undefined) creator.ttsConfig.volume = parseInt(args.volume);
+        if (args.volume !== undefined) creator.ttsConfig.volume = (parseInt(args.volume) || 50) / 100
         if (args.enable !== undefined) creator.ttsConfig.enabled = args.enable === 'true';
         return `✅ TTS配置已更新：voice=${creator.ttsConfig.voice}, rate=${creator.ttsConfig.rate}, volume=${creator.ttsConfig.volume}`;
       } catch (err) {
