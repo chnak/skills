@@ -105,3 +105,6 @@ titleGlow     - 标题发光
 ```
 ./output/{output}.mp4
 ```
+
+## 注意事项
+- 字体 font-weight 不要超过700
