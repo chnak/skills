@@ -10,6 +10,14 @@ allowed-tools: ext_call, write
 
 ## Creator 执行流程
 
+*视频流程概览*：
+- 封面: 封面 3秒
+- 页面1: html内容 + 字幕 (时长不需要传，会自动适配字幕时长)
+- 页面2: html内容 + 字幕 (时长不需要传，会自动适配字幕时长)
+- 页面3: html内容 + 字幕 (时长不需要传，会自动适配字幕时长)
+- 页面n: html内容 + 字幕 (时长不需要传，会自动适配字幕时长)
+- 片尾: 片尾 3秒
+
 ### 1. 创建视频项目
 ```
 ext_call({
@@ -23,19 +31,24 @@ ext_call({
 - `-v` - TTS语音
 - `-a true` - 添加片头片尾
 
-### 2. 创建幻灯片（5页）
+### 2. 添加封面
+```
+ext_call({
+  plugin: "skill:creator",
+  tool: "addCover",
+  args: { command: "-i {videoId} -t {title} -s {subtitle} -d 3 -b {color}" }
+})
+```
+
+### 3. 创建幻灯片（至少3页）
 ```
 ext_call({
   plugin: "skill:creator",
   tool: "addSlide",
-  args: { command: "-i {videoId} -d {duration} -b {bgColor}" }
+  args: { command: "-i {videoId} -b {bgColor}" }
 })
 ```
-- 页面1: 封面 4秒
-- 页面2: 内容 8秒
-- 页面3: 内容 8秒
-- 页面4: 内容 8秒
-- 页面5: 图表 7秒
+
 
 ### 3. 添加HTML内容（每页）
 ```
@@ -48,6 +61,7 @@ ext_call({
 - 动态生成丰富的HTML代码
 - 包含CSS动画
 - 全屏布局
+*所有字体字重 font-weight 不要超过700*
 
 ### 4. 添加TTS字幕（每页）
 ```
@@ -107,4 +121,4 @@ titleGlow     - 标题发光
 ```
 
 ## 注意事项
-- 字体 font-weight 不要超过700
+- 所有字体字重 font-weight 不要超过700
